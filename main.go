@@ -1,3 +1,39 @@
+// package main
+
+// import (
+// 	"time"
+// 	"vectoral/vector"
+
+// 	"gocv.io/x/gocv"
+// )
+
+// func main() {
+// 	webcam, _ := gocv.OpenVideoCapture(1)
+// 	window := gocv.NewWindow("Hello")
+// 	img := gocv.NewMat()
+
+// 	///////////////////
+// 	var fps time.Duration = 60
+// 	framePerSecund := time.Second / fps
+// 	for {
+// 		time.Sleep(framePerSecund)
+// 		webcam.Read(&img)
+// 		image, _ := img.ToImage()
+// 		vectorImg := vector.VectorImage{
+// 			ColorDiffPercent: 0.1,
+// 			Img:              image,
+// 		}
+// 		vectoredImg := vectorImg.ImageVector()
+
+// 		updatedIMG, _ := gocv.ImageToMatRGBA(vectoredImg)
+// 		// windoww.get
+// 		// window.WaitKey(2)
+// 		// fmt.Println("CLICK")
+// 		window.IMShow(updatedIMG)
+
+//			window.WaitKey(1)
+//		}
+//	}
 package main
 
 import (
@@ -17,12 +53,15 @@ func main() {
 		fileName := file.Name()
 		img, _ := getImageFromFilePath(dirPath + fileName)
 		vectorImg := vector.VectorImage{
-			ColorDiffPercent: 0.3,
+			ColorDiffPercent: 0.5,
 			Img:              img,
 		}
 		// vectorImg.ImageVector()
 		fmt.Println("FILENAME: ", fileName)
-		saveImageAt(vectorImg.ImageVector(), "./save/"+fileName)
+		image, vector := vectorImg.ImageVector()
+		vectorImg.SavePathsToSVGFile(vector, "./save/"+fileName+"A.svg")
+		// fmt.Println("RES: ", len(vectorImg.ImageVector()))
+		saveImageAt(image, "./save/"+fileName)
 	}
 	fmt.Println("PROCESS END")
 
