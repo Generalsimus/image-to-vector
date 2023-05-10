@@ -130,24 +130,25 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 			fmt.Println("pixelColor: ", pixelColor, column, isColorUpper, isColorLeft)
 			if !isColorLeft && isColorUpper {
-				current.AddMoveLeft(column, row)
-				pathShapes[column] = current
+				// current.AddMoveLeft(column, row)
+				if prevOk {
+					previous.AddMoveRight(column-1, row)
+				}
+				// pathShapes[column] = previous
 			} else if !isColorUpper && isColorLeft {
-				previous.AddMoveRight(column, row)
+				previous.AddMoveLeft(column, row)
 				pathShapes[column] = previous
 
 			} else if !isColorUpper && !isColorLeft {
 				pathShape := NewVectorPath(pixelColor)
 				pathShapeAddr := &pathShape
 
+				pathShapeAddr.AddMoveLeft(column, row)
 				pathShapes[column] = pathShapeAddr
 				paths = append(paths, pathShapeAddr)
 
-				pathShapeAddr.AddMoveLeft(column, row)
 				// fmt.Println("pathShapeAddr: ", pixelColor, pathShapeAddr.color)
-				// if prevOk {
-				// 	previous.AddMoveRight(column-1, row)
-				// }
+
 			}
 
 		}
@@ -212,6 +213,7 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 			// fmt.Println("EEEE: ", path.color)
 			d := ""
 			for index, moveAddr := range path.MoveLinesLeft {
+				// moveAddr := path.MoveLinesRight[len(path.MoveLinesRight)-index-1]
 				move := *moveAddr
 				if index == 0 {
 					d += fmt.Sprintf("M%v %v", move[0], move[1])
@@ -219,9 +221,11 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 					d += fmt.Sprintf(" L%v %v", move[0], move[1])
 				}
 			}
-			for _, moveAddr := range path.MoveLinesRight {
+			// d += "PLLP"
+			for index, _ := range path.MoveLinesRight {
+				moveAddr := path.MoveLinesRight[len(path.MoveLinesRight)-index-1]
 				move := *moveAddr
-				d = d + fmt.Sprintf(" L%v %v", move[0], move[1])
+				d = d + fmt.Sprintf(" L%v %v", move[1], move[0])
 			}
 			r, g, b, a := path.color.RGBA()
 			// color.NRGBA
