@@ -126,18 +126,17 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			curOk, current := PathInclude(pathShapes, column)
 			// current := pathShapes[column]
 			isColorUpper := curOk && current.ColorEqual(pixelColor)
-			isColorLeft := prevOk && curOk && previous.ColorEqual(current.color)
+			isColorLeft := prevOk && previous.ColorEqual(pixelColor)
 
+			fmt.Println("pixelColor: ", pixelColor, column, isColorUpper, isColorLeft)
 			if !isColorLeft && isColorUpper {
 				current.AddMoveLeft(column, row)
+				pathShapes[column] = current
+			} else if !isColorUpper && isColorLeft {
+				previous.AddMoveRight(column, row)
+				pathShapes[column] = previous
 
-			}
-			if !isColorUpper && isColorLeft {
-				current.AddMoveRight(column, row)
-
-			}
-			fmt.Println("pixelColor: ", pixelColor, column, isColorUpper, isColorLeft)
-			if !isColorUpper && !isColorLeft {
+			} else if !isColorUpper && !isColorLeft {
 				pathShape := NewVectorPath(pixelColor)
 				pathShapeAddr := &pathShape
 
@@ -146,9 +145,9 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 				pathShapeAddr.AddMoveLeft(column, row)
 				// fmt.Println("pathShapeAddr: ", pixelColor, pathShapeAddr.color)
-				if prevOk {
-					previous.AddMoveRight(column-1, row)
-				}
+				// if prevOk {
+				// 	previous.AddMoveRight(column-1, row)
+				// }
 			}
 
 		}
@@ -222,7 +221,7 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 			}
 			for _, moveAddr := range path.MoveLinesRight {
 				move := *moveAddr
-				d += fmt.Sprintf(" L%v %v", move[0], move[1])
+				d = d + fmt.Sprintf(" L%v %v", move[0], move[1])
 			}
 			r, g, b, a := path.color.RGBA()
 			// color.NRGBA
