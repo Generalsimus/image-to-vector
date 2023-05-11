@@ -11,13 +11,13 @@ import (
 )
 
 type VectorPath struct {
-	index uint8
+	id    *uint8
 	color color.Color
 	Move  *map[int]*[2]int
 }
 
 func (p *VectorPath) Equal(el *VectorPath) bool {
-	return p.index == el.index
+	return *p.id == *el.id
 }
 func (p VectorPath) ColorEqual(color color.Color) bool {
 	return p.color == color
@@ -28,8 +28,9 @@ var incIndex uint8 = 0
 func NewVectorPath(color color.Color) *VectorPath {
 	incIndex = incIndex + 1
 	move := make(map[int]*[2]int)
+	// fmt.Println("IDDDD", incIndex)
 	return &VectorPath{
-		index: incIndex,
+		id:    &incIndex,
 		color: color,
 		Move:  &move,
 	}
@@ -65,13 +66,13 @@ func (p *VectorPath) AddMove(x int, y int) {
 }
 
 func (p *VectorPath) Assign(p2 *VectorPath) {
-	move := *p.Move
-	p2.index = p.index
-	p2.Move = p.Move
+	move := *p2.Move
 	for y, XVector := range move {
 		p.AddMove(XVector[0], y)
 		p.AddMove(XVector[1], y)
 	}
+	p2.id = p.id
+	p2.Move = p.Move
 
 }
 
@@ -133,13 +134,14 @@ type VectorImage struct {
 	Img              image.Image
 }
 
-func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
+func (v VectorImage) ImageVector() (image.Image, map[uint8]*VectorPath) {
 	bounds := v.Img.Bounds()
 	widget := bounds.Max.X
 	height := bounds.Max.Y
 	img := v.Img
 	colorDiffNum := float64(255 * v.ColorDiffPercent)
-	paths := []*VectorPath{}
+	paths := map[uint8]*VectorPath{}
+	// []*VectorPath{}
 
 	newImage := image.NewRGBA(image.Rect(0, 0, widget, height))
 	pathShapes := make([]*VectorPath, widget)
@@ -167,8 +169,10 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			isColorUpper := curOk && current.ColorEqual(pixelColor)
 			isColorLeft := prevOk && previous.ColorEqual(pixelColor)
 			equal := curOk && prevOk && current.Equal(previous)
+
 			if isColorLeft && isColorUpper && !equal {
-				current.Assign(previous)
+				// delete(paths, previous.id)
+				// current.Assign(previous)
 			}
 
 			if !isColorLeft && !isColorUpper {
@@ -176,7 +180,7 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 				pathShape.AddMove(column, row)
 				pathShapes[column] = pathShape
-				paths = append(paths, pathShape)
+				paths[*pathShape.id] = pathShape
 			}
 
 			if prevOk && !isColorLeft {
@@ -225,7 +229,7 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
+func (v VectorImage) SavePathsToSVGFile(paths map[uint8]*VectorPath, fileName string) {
 	os.Remove(fileName)
 
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -260,12 +264,16 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 		sort.Ints(keys)
 		d := ""
 
+		// d1 := ""
+		// d2 := ""
 		for _, YVector := range keys {
 			XVectors := move[YVector]
+			// d1 = d1 + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
+			// d2 = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d2
 			d = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
 
 		}
-		fmt.Println("D: ", d)
+		// fmt.Println("D: ", d)
 		r, g, b, a := path.color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
