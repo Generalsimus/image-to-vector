@@ -50,8 +50,16 @@ func main() {
 	entries, _ := os.ReadDir(dirPath)
 
 	for _, file := range entries {
+
 		fileName := file.Name()
-		img, _ := getImageFromFilePath(dirPath + fileName)
+		path := dirPath + fileName
+
+		fileInfo, _ := os.Stat(path)
+		if fileInfo.IsDir() {
+			continue
+		}
+
+		img, _ := getImageFromFilePath(path)
 		vectorImg := vector.VectorImage{
 			ColorDiffPercent: 0.5,
 			Img:              img,
