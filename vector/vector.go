@@ -13,15 +13,7 @@ import (
 type VectorPath struct {
 	index uint8
 	color color.Color
-	// MoveLines *[][]uint8
-	// MoveLinesRight []*[]uint8
-	// MoveNames      []*string
-	// name *string
-	//[Y][2]uint8{LeftX,RightX}
-	Move *map[int]*[2]int
-	// Y      int
-	// LeftX  int
-	// RightX int
+	Move  *map[int]*[2]int
 }
 
 func (p *VectorPath) Equal(el *VectorPath) bool {
@@ -70,6 +62,17 @@ func (p *VectorPath) AddMove(x int, y int) {
 		YVector[1] = x
 	}
 	// fmt.Println("YVector: ", ok, YVector)
+}
+
+func (p *VectorPath) Assign(p2 *VectorPath) {
+	move := *p.Move
+	p2.index = p.index
+	p2.Move = p.Move
+	for y, XVector := range move {
+		p.AddMove(XVector[0], y)
+		p.AddMove(XVector[1], y)
+	}
+
 }
 
 // func (p *VectorPath) AddMoveLeft(x int, y int) {
@@ -130,25 +133,6 @@ type VectorImage struct {
 	Img              image.Image
 }
 
-// func (v VectorImage) RGBToNum(r uint8, g uint8, b uint8) uint8 {
-// 	return (r << 16) + (g << 8) + (b)
-// }
-// func (v VectorImage) NumToRGB(num int) (uint8, uint8, uint8) {
-
-//		return uint8((num & 0xff0000) >> 16), uint8((num & 0x00ff00) >> 8), uint8(num & 0x0000ff)
-//	}
-func isColorEqual(color1 color.Color, color2 color.Color) bool {
-	r1, g1, b1, a1 := color1.RGBA()
-	r2, g2, b2, a2 := color2.RGBA()
-	return r1 != r2 || g1 != g2 || b1 != b2 || a1 != a2
-}
-
-//	func PixelColorIsLonely(img image.Image, x, y  ) {
-//		if x
-//
-// mainPixel:= := img.At(x, y)
-// }
-
 func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	bounds := v.Img.Bounds()
 	widget := bounds.Max.X
@@ -177,13 +161,15 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			}
 			newImage.Set(column, row, pixelColor)
 
-			//
 			prevOk, previous := PathInclude(pathShapes, column-1)
 			curOk, current := PathInclude(pathShapes, column)
-			// current := pathShapes[column]
+
 			isColorUpper := curOk && current.ColorEqual(pixelColor)
 			isColorLeft := prevOk && previous.ColorEqual(pixelColor)
-			// equal := curOk && prevOk && current.Equal(previous)
+			equal := curOk && prevOk && current.Equal(previous)
+			if isColorLeft && isColorUpper && !equal {
+				current.Assign(previous)
+			}
 
 			if !isColorLeft && !isColorUpper {
 				pathShape := NewVectorPath(pixelColor)
@@ -209,41 +195,6 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				pathShapes[column] = previous
 
 			}
-			// if isColorLeft && !isColorLeft {
-
-			// }
-			// if isColorLeft && !
-			// fmt.Println("COLOR: ", color.RGBA{5, 9, 10, 2} == color.RGBA{5, 9, 10, 2})
-			// if !isColorLeft && !isColorUpper {
-			// 	pathShape := NewVectorPath(pixelColor)
-
-			// 	pathShape.AddMoveLeft(column, row)
-			// 	pathShapes[column] = pathShape
-			// 	paths = append(paths, pathShape)
-
-			// }
-			// if prevOk && !isColorLeft {
-			// 	previous.AddMoveRight(column-1, row)
-			// }
-
-			// if curOk && !isColorUpper {
-			// 	current.AddMoveLeft(column, row-1)
-			// }
-
-			// if isColorLeft && !isColorUpper {
-			// 	// if curOk {
-			// 	// 	current.AddMoveRight(column, row-1)
-			// 	// }
-			// 	pathShapes[column] = previous
-			// 	previous.AddMoveRight(column, row)
-
-			// }
-			// if !isColorLeft && isColorUpper {
-			// 	// if prevOk {
-			// 	// 	previous.AddMoveRight(column-1, row)
-			// 	// }
-			// 	current.AddMoveLeft(column, row)
-			// }
 
 		}
 	}
@@ -300,9 +251,6 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 
 	for _, path := range paths {
 		move := *path.Move
-		// fmt.Println("MOVE: ", move)
-		// fmt.Println("NEW PATH", move)
-		// fmt.Println("NEW PATH")
 		// size := len(move)
 		keys := make([]int, 0, len(move))
 
@@ -310,46 +258,21 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 			keys = append(keys, k)
 		}
 		sort.Ints(keys)
-		// fmt.Println("keys: ", keys)
-		d1 := ""
-		d2 := ""
-		// index := 0S
+		d := ""
+
 		for _, YVector := range keys {
 			XVectors := move[YVector]
-			// d = fmt.Sprintf("L%v %v ", YVector, XVectors[1]) + d
-			d1 = d1 + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
-			d2 = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d2
-
-			///////////////////////////////////////
-			// fmt.Printf("Y: %v X: %v \n", YVector, XVectors[0])
-			// fmt.Printf("Y: %v X: %v \n", YVector, XVectors[1])
-			// d += fmt.Sprintf("L%v %v L%v %v", YVector, XVectors[0], YVector, XVectors[1])
-			// if
+			d = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
 
 		}
-		// d = "M" +
-		// fmt.Println("D: ", d)
-		// fmt.Println("DDDD: ", )
-		// fmt.Println("SIZE: ", size)
-		// if size > 0 {
-		// 	d := ""
-		// 	for index, move := range moveLines {
-
-		// 		if index == 0 {
-		// 			d += fmt.Sprintf("M%v %v", move[0], move[1])
-		// 		} else {
-		// 			d += fmt.Sprintf(" L%v %v", move[0], move[1])
-		// 		}
-		// 	}
-
+		fmt.Println("D: ", d)
 		r, g, b, a := path.color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
-		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%v%vZ\" />\n", color, d1[1:], d2))); err != nil {
+		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%vZ\" />\n", color, d[1:]))); err != nil {
 			log.Fatal(err)
 		}
 
-		// }
 	}
 	if _, err := f.Write([]byte("</svg>")); err != nil {
 		log.Fatal(err)
