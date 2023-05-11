@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 )
 
 type VectorPath struct {
@@ -191,12 +192,22 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				pathShapes[column] = pathShape
 				paths = append(paths, pathShape)
 			}
+
+			if prevOk && !isColorLeft {
+				previous.AddMove(column-1, row)
+			}
+
+			if curOk && !isColorUpper {
+				current.AddMove(column, row-1)
+			}
+
 			if isColorUpper {
 				current.AddMove(column, row)
 			}
 			if isColorLeft {
 				previous.AddMove(column, row)
 				pathShapes[column] = previous
+
 			}
 			// if isColorLeft && !isColorLeft {
 
@@ -290,21 +301,33 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 	for _, path := range paths {
 		move := *path.Move
 		// fmt.Println("MOVE: ", move)
+		// fmt.Println("NEW PATH", move)
+		// fmt.Println("NEW PATH")
 		// size := len(move)
-		d := ""
-		// index := 0
-		for YVector, XVectors := range move {
-			d = fmt.Sprintf("L%v %v ", YVector, XVectors[1]) + d
-			d = d + fmt.Sprintf("L%v %v ", YVector, XVectors[0])
+		keys := make([]int, 0, len(move))
+
+		for k := range move {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+		// fmt.Println("keys: ", keys)
+		d1 := ""
+		d2 := ""
+		// index := 0S
+		for _, YVector := range keys {
+			XVectors := move[YVector]
+			// d = fmt.Sprintf("L%v %v ", YVector, XVectors[1]) + d
+			d1 = d1 + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
+			d2 = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d2
 
 			///////////////////////////////////////
-			fmt.Printf("Y: %v X: %v \n", YVector, XVectors[0])
-			fmt.Printf("Y: %v X: %v \n", YVector, XVectors[1])
+			// fmt.Printf("Y: %v X: %v \n", YVector, XVectors[0])
+			// fmt.Printf("Y: %v X: %v \n", YVector, XVectors[1])
 			// d += fmt.Sprintf("L%v %v L%v %v", YVector, XVectors[0], YVector, XVectors[1])
 			// if
 
 		}
-		d = "M" + d[1:]
+		// d = "M" +
 		// fmt.Println("D: ", d)
 		// fmt.Println("DDDD: ", )
 		// fmt.Println("SIZE: ", size)
@@ -320,8 +343,9 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 		// 	}
 
 		r, g, b, a := path.color.RGBA()
+		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
-		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"%vZ\" />\n", fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8), d))); err != nil {
+		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%v%vZ\" />\n", color, d1[1:], d2))); err != nil {
 			log.Fatal(err)
 		}
 
