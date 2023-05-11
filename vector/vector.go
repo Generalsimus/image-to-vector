@@ -10,14 +10,14 @@ import (
 )
 
 type VectorPath struct {
-	index     uint8
-	color     color.Color
-	MoveLines *[][]uint8
+	index uint8
+	color color.Color
+	// MoveLines *[][]uint8
 	// MoveLinesRight []*[]uint8
 	// MoveNames      []*string
 	// name *string
 	//[Y][2]uint8{LeftX,RightX}
-	Move *map[int][2]int
+	Move *map[int]*[2]int
 	// Y      int
 	// LeftX  int
 	// RightX int
@@ -34,7 +34,7 @@ var incIndex uint8 = 0
 
 func NewVectorPath(color color.Color) *VectorPath {
 	incIndex = incIndex + 1
-	move := make(map[int][2]int)
+	move := make(map[int]*[2]int)
 	return &VectorPath{
 		index: incIndex,
 		color: color,
@@ -42,18 +42,21 @@ func NewVectorPath(color color.Color) *VectorPath {
 	}
 }
 
-func (p *VectorPath) GetYVectorXPos(y int) (bool, [2]int) {
+func (p *VectorPath) GetYVectorXPos(y int) (bool, *[2]int) {
 	move := *p.Move
 	yMove, ok := move[y]
 	if ok {
 		return ok, yMove
 	}
-	yMove = [2]int{0, 0}
+	XVectors := [2]int{0, 0}
+	yMove = &XVectors
 	move[y] = yMove
+
 	return ok, yMove
 }
 func (p *VectorPath) AddMove(x int, y int) {
 	ok, YVector := p.GetYVectorXPos(y)
+	// fmt.Println("YVector: ", ok, YVector)
 	if ok {
 		if YVector[0] > x {
 			YVector[0] = x
@@ -65,6 +68,7 @@ func (p *VectorPath) AddMove(x int, y int) {
 		YVector[0] = x
 		YVector[1] = x
 	}
+	// fmt.Println("YVector: ", ok, YVector)
 }
 
 // func (p *VectorPath) AddMoveLeft(x int, y int) {
@@ -190,6 +194,13 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			if isColorUpper {
 				current.AddMove(column, row)
 			}
+			if isColorLeft {
+				previous.AddMove(column, row)
+				pathShapes[column] = previous
+			}
+			// if isColorLeft && !isColorLeft {
+
+			// }
 			// if isColorLeft && !
 			// fmt.Println("COLOR: ", color.RGBA{5, 9, 10, 2} == color.RGBA{5, 9, 10, 2})
 			// if !isColorLeft && !isColorUpper {
@@ -277,27 +288,44 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 	// fmt.Println("paths: ", paths)</svg></svg>
 
 	for _, path := range paths {
-		moveLines := *path.MoveLines
-		size := len(moveLines)
-		fmt.Println("SIZE: ", size)
-		if size > 0 {
-			d := ""
-			for index, move := range moveLines {
+		move := *path.Move
+		// fmt.Println("MOVE: ", move)
+		// size := len(move)
+		d := ""
+		// index := 0
+		for YVector, XVectors := range move {
+			d = fmt.Sprintf("L%v %v ", YVector, XVectors[1]) + d
+			d = d + fmt.Sprintf("L%v %v ", YVector, XVectors[0])
 
-				if index == 0 {
-					d += fmt.Sprintf("M%v %v", move[0], move[1])
-				} else {
-					d += fmt.Sprintf(" L%v %v", move[0], move[1])
-				}
-			}
-
-			r, g, b, a := path.color.RGBA()
-
-			if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"%v Z\" />\n", fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8), d))); err != nil {
-				log.Fatal(err)
-			}
+			///////////////////////////////////////
+			fmt.Printf("Y: %v X: %v \n", YVector, XVectors[0])
+			fmt.Printf("Y: %v X: %v \n", YVector, XVectors[1])
+			// d += fmt.Sprintf("L%v %v L%v %v", YVector, XVectors[0], YVector, XVectors[1])
+			// if
 
 		}
+		d = "M" + d[1:]
+		// fmt.Println("D: ", d)
+		// fmt.Println("DDDD: ", )
+		// fmt.Println("SIZE: ", size)
+		// if size > 0 {
+		// 	d := ""
+		// 	for index, move := range moveLines {
+
+		// 		if index == 0 {
+		// 			d += fmt.Sprintf("M%v %v", move[0], move[1])
+		// 		} else {
+		// 			d += fmt.Sprintf(" L%v %v", move[0], move[1])
+		// 		}
+		// 	}
+
+		r, g, b, a := path.color.RGBA()
+
+		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"%vZ\" />\n", fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8), d))); err != nil {
+			log.Fatal(err)
+		}
+
+		// }
 	}
 	if _, err := f.Write([]byte("</svg>")); err != nil {
 		log.Fatal(err)
