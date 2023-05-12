@@ -7,13 +7,13 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 )
 
 type VectorPath struct {
-	index     *uint8
-	color     color.Color
-	Move      *map[int]*[2]int
-	MoveLines *[]*[2]int
+	index *uint8
+	color color.Color
+	Move  *map[int]*[2]int
 }
 
 func (p *VectorPath) Equal(el *VectorPath) bool {
@@ -23,13 +23,15 @@ func (p VectorPath) ColorEqual(color color.Color) bool {
 	return p.color == color
 }
 
+// var incIndex uint8 = 0
+
 func NewVectorPath(color color.Color, index uint8) *VectorPath {
-	// move := make(map[int]*[2]int)
-	moveLines := []*[2]int{}
+	// incIndex = incIndex + 1
+	move := make(map[int]*[2]int)
 	return &VectorPath{
-		index:     &index,
-		color:     color,
-		MoveLines: &moveLines,
+		index: &index,
+		color: color,
+		Move:  &move,
 	}
 }
 
@@ -45,30 +47,31 @@ func (p *VectorPath) GetYVectorXPos(y int) (bool, *[2]int) {
 
 	return ok, yMove
 }
-func (p *VectorPath) AddMoveLeft(x int, y int) {
-	move := [2]int{x, y}
-	moveLines := append(*p.MoveLines, &move)
-	p.MoveLines = &moveLines
-}
-func (p *VectorPath) AddMoveRight(x int, y int) {
-	move := [2]int{x, y}
-	moveLines := append([]*[2]int{&move}, *p.MoveLines...)
-	p.MoveLines = &moveLines
+func (p *VectorPath) AddMove(x int, y int) {
+	ok, YVector := p.GetYVectorXPos(y)
+	// fmt.Println("YVector: ", ok, YVector)
+	if ok {
+		if YVector[0] > x {
+			YVector[0] = x
+		}
+		if YVector[1] < x {
+			YVector[1] = x
+		}
+	} else {
+		YVector[0] = x
+		YVector[1] = x
+	}
+	// fmt.Println("YVector: ", ok, YVector)
 }
 
 func (p *VectorPath) Assign(p2 *VectorPath) {
-	moveLines := append(*p2.MoveLines, *p.MoveLines...)
-
-	p.MoveLines = &moveLines
-	p2.MoveLines = &moveLines
-	// move := *p.Move
-	fmt.Println("ASSIGN")
+	move := *p2.Move
 	p2.index = p.index
-	// p2.Move = p.Move
-	// for y, XVector := range move {
-	// 	p.AddMove(XVector[0], y)
-	// 	p.AddMove(XVector[1], y)
-	// }
+	p2.Move = p.Move
+	for y, XVector := range move {
+		p.AddMove(XVector[0], y)
+		p.AddMove(XVector[1], y)
+	}
 
 }
 
@@ -166,33 +169,43 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			isColorLeft := prevOk && previous.ColorEqual(pixelColor)
 			equal := curOk && prevOk && current.Equal(previous)
 			if isColorLeft && isColorUpper && !equal {
-				index := *previous.index
-				current.Assign(previous)
-				paths[index] = nil
+
+				// index := current.index
+				// if *current.index > *previous.index {
+				// 	index := current.index
+				// 	previous.Assign(current)
+				// 	paths[*index] = nil
+				// } else {
+				// 	index := previous.index
+				// 	current.Assign(previous)
+				// 	paths[*index] = nil
+
+				// }
+				// previous.Assign(current)
+				// paths[*index] = nil
 			}
 
 			if !isColorLeft && !isColorUpper {
 				pathShape := NewVectorPath(pixelColor, index)
 				index++
-				pathShape.AddMoveLeft(column, row)
-				// pathShape.AddMoveRight(column, row)
+				pathShape.AddMove(column, row)
 				pathShapes[column] = pathShape
 				paths = append(paths, pathShape)
 			}
 
 			if prevOk && !isColorLeft {
-				previous.AddMoveRight(column-1, row)
+				previous.AddMove(column-1, row)
 			}
 
 			if curOk && !isColorUpper {
-				current.AddMoveLeft(column, row-1)
+				current.AddMove(column, row-1)
 			}
 
-			if isColorUpper && !isColorLeft {
-				current.AddMoveLeft(column, row)
+			if isColorUpper {
+				current.AddMove(column, row)
 			}
-			if isColorLeft && !isColorUpper {
-				previous.AddMoveRight(column, row)
+			if isColorLeft {
+				previous.AddMove(column, row)
 				pathShapes[column] = previous
 
 			}
@@ -249,18 +262,31 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 	}
 	// <svg height="210" width="400">
 	// fmt.Println("paths: ", paths)</svg></svg>
-
+	sort.Slice(paths, func(i, j int) bool {
+		el1 := paths[i]
+		el2 := paths[j]
+		if el1 == nil || el2 == nil {
+			return false
+		}
+		return *el1.index < *el2.index
+	})
 	for _, path := range paths {
 		if path == nil {
 			continue
 		}
-		moveLines := *path.MoveLines
+		move := *path.Move
+		// size := len(move)
+		keys := make([]int, 0, len(move))
 
+		for k := range move {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
 		d := ""
-		for _, XYPoint := range moveLines {
-			// XVectors := move[YVector]
-			// if /
-			d += fmt.Sprintf("L%v %v ", XYPoint[0], XYPoint[1])
+
+		for _, YVector := range keys {
+			XVectors := move[YVector]
+			d = fmt.Sprintf("L%v %v ", XVectors[1], YVector) + d + fmt.Sprintf("L%v %v ", XVectors[0], YVector)
 
 		}
 		// fmt.Println("D: ", d)
