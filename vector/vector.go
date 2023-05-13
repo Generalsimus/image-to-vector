@@ -14,6 +14,8 @@ type VectorPath struct {
 	color color.Color
 	// Move      *map[int]*[2]int
 	MoveLines *[]*[2]int
+	// X         int
+	// MaxY int/
 }
 
 func (p *VectorPath) Equal(el *VectorPath) bool {
@@ -24,7 +26,7 @@ func (p *VectorPath) ColorEqual(color color.Color) bool {
 }
 
 func NewVectorPath(color color.Color, index uint8) *VectorPath {
-	// move := make(map[int]*[2]int)
+
 	moveLines := []*[2]int{}
 	return &VectorPath{
 		index:     &index,
@@ -35,14 +37,55 @@ func NewVectorPath(color color.Color, index uint8) *VectorPath {
 
 func (p *VectorPath) AddMoveLeft(x int, y int) {
 	move := [2]int{x, y}
-	moveLines := append(*p.MoveLines, &move)
-	p.MoveLines = &moveLines
+	// fmt.Println(*p)
+	moveLines := append([]*[2]int{&move}, *p.MoveLines...)
+	*p.MoveLines = moveLines
 }
 func (p *VectorPath) AddMoveRight(x int, y int) {
+
 	move := [2]int{x, y}
-	moveLines := append([]*[2]int{&move}, *p.MoveLines...)
-	p.MoveLines = &moveLines
+	moveLines := append(*p.MoveLines, &move)
+	*p.MoveLines = moveLines
+	// // count := len(moveLines)
+	// indexAt := len(moveLines) - p.MaxY - y - 1
+	// // fmt.Println("R", indexAt, p.Y-y)
+	// if indexAt > 0 && moveLines[indexAt][0] < move[0] {
+	// 	moveLines[indexAt] = &move
+	// } else {
+
+	// }
+	// *p.MoveLines = moveLines
+
+	// // p.X = x
+	// if y > p.MaxY {
+	// 	p.MaxY = y
+	// }
+
 }
+
+// func (p *VectorPath) AddMove(x int, y int) {
+// 	minusX = p.X - x
+// 	moveLines := *p.MoveLines
+// 	count := len(moveLines)
+
+// 	if count > 0 && moveLines[count-][] < move[0] {
+
+// 	}
+// 	// move := [2]int{x, y}
+// 	// moveLines := *p.MoveLines
+// 	// count := len(moveLines)
+// 	// if count > 0 && moveLines[0][0] < move[0] {
+// 	// 	moveLines[0] = &move
+// 	// } else {
+// 	// 	moveLines = append([]*[2]int{&move}, *p.MoveLines...)
+// 	// }
+// 	*p.MoveLines = moveLines
+// }
+
+// func (p *VectorPath) SetIndex(index uint8) {
+// 	p.index = index
+
+// }
 
 func (p *VectorPath) Assign(p2 *VectorPath) {
 	moveLines := append(*p2.MoveLines, *p.MoveLines...)
@@ -51,8 +94,13 @@ func (p *VectorPath) Assign(p2 *VectorPath) {
 	*p.MoveLines = moveLines
 	*p2.MoveLines = moveLines
 	// move := *p.Move
+
 	// fmt.Println("ASSIGN")
-	*p2.index = *p.index
+	// p2.SetIndex(p.index)
+	// index := *p.index
+	// indexAddr := &index
+	// p.index = indexAddr
+	// p2.index = indexAddr
 	// p2.Move = p.Move
 	// for y, XVector := range move {
 	// 	p.AddMove(XVector[0], y)
@@ -148,44 +196,100 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			}
 			newImage.Set(column, row, pixelColor)
 
-			prevOk, previous := PathInclude(pathShapes, column-1)
+			leftOk, left := PathInclude(pathShapes, column-1)
 			curOk, current := PathInclude(pathShapes, column)
 
-			isColorUpper := curOk && current.ColorEqual(pixelColor)
-			isColorLeft := prevOk && previous.ColorEqual(pixelColor)
-			// equal := curOk && prevOk && current.Equal(previous)
+			isColorCurrent := curOk && current.ColorEqual(pixelColor)
+			isColorLeft := leftOk && left.ColorEqual(pixelColor)
+			equal := curOk && leftOk && current.Equal(left)
+
+			if !curOk || !current.ColorEqual(pixelColor) {
+				current = NewVectorPath(pixelColor, index)
+				index++
+
+				pathShapes[column] = current
+				paths = append(paths, current)
+				curOk = true
+			} else if isColorCurrent && isColorLeft && !equal {
+				// index := left.index
+
+				currentLines := current.MoveLines
+				leftLines := left.MoveLines
+
+				moveLines := append(append([]*[2]int{}, *leftLines...), *currentLines...)
+
+				*current.MoveLines = moveLines
+				*left.MoveLines = moveLines
+				// *currentLines = moveLines
+				// *leftLines = moveLines
+				*left = *current
+				// *left.MoveLines = moveLines
+				*left.index = *current.index
+				// paths[index] = nil
+				equal = true
+				// fmt.Println("ASSSIGN", len(moveLines))
+			}
+
+			if !equal {
+				if leftOk {
+					left.AddMoveRight(column, row)
+				}
+				if curOk {
+					current.AddMoveLeft(column, row)
+				}
+			}
+			// if  isColorCurrent
 			// if isColorLeft && isColorUpper && !equal {
-			// 	index := *previous.index
+			// 	index := previous.index
 			// 	current.Assign(previous)
 			// 	paths[index] = nil
 
 			// }
 
-			if !isColorLeft && !isColorUpper {
-				pathShape := NewVectorPath(pixelColor, index)
-				index++
-				pathShape.AddMoveLeft(column, row)
+			// if !isColorLeft && !isColorUpper {
+			// 	pathShape := NewVectorPath(pixelColor, index)
+			// 	index++
+			// 	pathShape.AddMoveLeft(column, row)
 
-				pathShapes[column] = pathShape
-				paths = append(paths, pathShape)
-			}
+			// 	pathShapes[column] = pathShape
+			// 	paths = append(paths, pathShape)
+			// }
+			// if isColorLeft && !equal {
+			// 	continue
+			// }
 
-			if prevOk && !isColorLeft {
-				previous.AddMoveRight(column-1, row)
-			}
+			// if isColorLeft && isColorUpper && !equal {
+			// 	index := left.index
+			// 	moveLines := append(*left.MoveLines, *upper.MoveLines...)
+			// 	*upper.MoveLines = moveLines
+			// 	*left.MoveLines = moveLines
+			// 	left.index = upper.index
+			// 	paths[index] = nil
+			// }
 
-			if curOk && !isColorUpper {
-				current.AddMoveLeft(column, row-1)
-			}
+			// if isColorLeft {
+			// 	// previous.AddMoveLeft(column, row)
+			// 	pathShapes[column] = left
+			// }
+			//  else {
+			// 	previous.AddMoveRight(column-1, row)
+			// }
+			// if prevOk && !isColorLeft {
+			// 	previous.AddMoveRight(column-1, row)
+			// }
 
-			if isColorUpper && !isColorLeft {
-				current.AddMoveLeft(column, row)
-			}
-			if isColorLeft && !isColorUpper {
-				previous.AddMoveRight(column, row)
-				pathShapes[column] = previous
+			// if curOk && !isColorUpper {
+			// 	current.AddMoveLeft(column, row-1)
+			// }
 
-			}
+			// if isColorUpper  {
+			// 	current.AddMoveLeft(column, row)
+			// }
+			// if isColorLeft   {
+			// 	previous.AddMoveRight(column, row)
+			// 	pathShapes[column] = previous
+
+			// }
 
 		}
 	}
@@ -242,10 +346,11 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 	// fmt.Println("paths: ", paths)</svg></svg>
 
 	for _, path := range paths {
-		if path == nil {
+		moveLines := *path.MoveLines
+
+		if path == nil || len(moveLines) == 0 {
 			continue
 		}
-		moveLines := *path.MoveLines
 
 		d := ""
 		for _, XYPoint := range moveLines {
