@@ -61,7 +61,7 @@ func main() {
 
 		img, _ := getImageFromFilePath(path)
 		vectorImg := vector.VectorImage{
-			ColorDiffPercent: 0.5,
+			ColorDiffPercent: 0.2,
 			Img:              img,
 		}
 		// vectorImg.ImageVector()
