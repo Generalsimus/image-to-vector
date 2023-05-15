@@ -7,29 +7,32 @@ import (
 	"log"
 	"math"
 	"os"
+	"vectoral/utils"
 )
 
 type VectorPath struct {
-	index          *uint8
+	isUsed         bool
 	color          color.Color
 	MoveLinesLeft  *[]*[2]int
 	MoveLinesRight *[]*[2]int
 	PosY           int
+	AssignLeftAt   *VectorPath
+	AssignRightAt  *VectorPath
 }
 
-func (p *VectorPath) Equal(el *VectorPath) bool {
-	return *p.index == *el.index
-}
+//	func (p *VectorPath) Equal(el *VectorPath) bool {
+//		return *p.index == *el.index
+//	}
 func (p *VectorPath) ColorEqual(color color.Color) bool {
 	return p.color == color
 }
 
-func NewVectorPath(color color.Color, index uint8) *VectorPath {
+func NewVectorPath(color color.Color) *VectorPath {
 
 	moveLinesLeft := []*[2]int{}
 	moveLinesRight := []*[2]int{}
 	return &VectorPath{
-		index:          &index,
+		isUsed:         true,
 		color:          color,
 		MoveLinesLeft:  &moveLinesLeft,
 		MoveLinesRight: &moveLinesRight,
@@ -87,9 +90,38 @@ func PathInclude(vectorPaths []*VectorPath, index int) (bool, *VectorPath) {
 type VectorImage struct {
 	ColorDiffPercent float64
 	Img              image.Image
+	Widget           int
+	Height           int
+	Bounds           image.Rectangle
+	OnePixelPercentX float64
+	OnePixelPercentY float64
 }
 
-func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
+func NewVectorImage(Img image.Image, ColorDiffPercent float64) *VectorImage {
+	bounds := Img.Bounds()
+	widget := bounds.Max.X
+	height := bounds.Max.Y
+	onePixelPercentX := 1 / float64(widget) * 100
+	onePixelPercentY := 1 / float64(height) * 100
+
+	return &VectorImage{
+		ColorDiffPercent: ColorDiffPercent,
+		Img:              Img,
+		Widget:           widget,
+		Height:           height,
+		Bounds:           bounds,
+		OnePixelPercentX: onePixelPercentX,
+		OnePixelPercentY: onePixelPercentY,
+	}
+}
+func (v *VectorImage) MoveStart(x int, y int) (float64, float64) {
+	return float64(x) * v.OnePixelPercentX, float64(y) * v.OnePixelPercentY
+}
+func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
+	return float64(x+1) * v.OnePixelPercentX, float64(y+1) * v.OnePixelPercentY
+}
+
+func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	bounds := v.Img.Bounds()
 	widget := bounds.Max.X
 	height := bounds.Max.Y
@@ -97,11 +129,10 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	colorDiffNum := float64(255 * v.ColorDiffPercent)
 	paths := []*VectorPath{}
 
+	jobChannel := &utils.JobChannel[func()]{}
 	newImage := image.NewRGBA(image.Rect(0, 0, widget, height))
 	pathShapes := make([]*VectorPath, widget)
-	// NewVectorPaths(widget)
-	// pathShapes := []VectorPath{}
-	var index uint8 = 0
+
 	for row := 0; row < height; row++ {
 		for column := 0; column < widget; column++ {
 			r, g, b, a := img.At(column, row).RGBA()
@@ -150,11 +181,13 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				isColorCurrent = true
 				equal = true
 			} else if !isColorCurrent {
-				current = NewVectorPath(pixelColor, index)
-				index++
-
+				current = NewVectorPath(pixelColor)
 				pathShapes[column] = current
-				paths = append(paths, current)
+				jobChannel.AddJob(func() {
+					if current.isUsed {
+						paths = append(paths, current)
+					}
+				})
 				curOk = true
 				isColorCurrent = true
 			}
@@ -170,6 +203,7 @@ func (v VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 		}
 	}
+	jobChannel.Run()
 	// fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 	fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD")
 	return newImage, paths
