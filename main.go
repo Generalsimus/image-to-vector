@@ -60,14 +60,18 @@ func main() {
 		}
 
 		img, _ := getImageFromFilePath(path)
-		vectorImg := vector.VectorImage{
-			ColorDiffPercent: 0.2,
-			Img:              img,
-		}
+
+		vectorImg := vector.NewVectorImage(img, 0.2)
+
 		// vectorImg.ImageVector()
 		fmt.Println("FILENAME: ", fileName)
 		image, vector := vectorImg.ImageVector()
-		vectorImg.SavePathsToSVGFile(vector, "./save/"+fileName+"A.svg")
+
+		upScale := 1.20
+		newWidget := int(float64(vectorImg.Widget) * upScale)
+		newHeight := int(float64(vectorImg.Height) * upScale)
+		///////////////////////////////////////
+		vectorImg.SavePathsToSVGFile(vector, "./save/"+fileName+"A.svg", newWidget, newHeight)
 		// fmt.Println("RES: ", len(vectorImg.ImageVector()))
 		saveImageAt(image, "./save/"+fileName)
 	}

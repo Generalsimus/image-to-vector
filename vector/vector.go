@@ -13,24 +13,38 @@ import (
 type VectorPath struct {
 	isUsed         bool
 	color          color.Color
-	MoveLinesLeft  *[]*[2]int
-	MoveLinesRight *[]*[2]int
-	PosY           int
-	AssignLeftAt   *VectorPath
-	AssignRightAt  *VectorPath
+	Lines          *[]*[]*[2]float64
+	MoveLinesLeft  *[]*[2]float64
+	MoveLinesRight *[]*[2]float64
+	PosY               int
+	PosYIndex        int
+	// AssignLeftAt   *VectorPath
+	// AssignRightAt  *VectorPath
 }
 
 //	func (p *VectorPath) Equal(el *VectorPath) bool {
 //		return *p.index == *el.index
 //	}
+func (p *VectorPath) AddMove(x float64, y float64){ 
+	if p.PosY != y { 
+		p.PosYIndex = 0
+	}
+	line:=p.Lines[p.PosYIndex]
+	if line == nil {
+		
+	}
+
+	
+	p.PosYIndex = p.PosYIndex+1
+}
 func (p *VectorPath) ColorEqual(color color.Color) bool {
 	return p.color == color
 }
 
 func NewVectorPath(color color.Color) *VectorPath {
 
-	moveLinesLeft := []*[2]int{}
-	moveLinesRight := []*[2]int{}
+	moveLinesLeft := []*[2]float64{}
+	moveLinesRight := []*[2]float64{}
 	return &VectorPath{
 		isUsed:         true,
 		color:          color,
@@ -39,8 +53,8 @@ func NewVectorPath(color color.Color) *VectorPath {
 	}
 }
 
-func (p *VectorPath) AddMoveLeft(x int, y int) {
-	move := [2]int{x, y}
+func (p *VectorPath) AddMoveLeft(x float64, y float64) {
+	move := [2]float64{x, y}
 
 	moveLinesLeft := append(*p.MoveLinesLeft, &move)
 	*p.MoveLinesLeft = moveLinesLeft
@@ -57,8 +71,8 @@ func (p *VectorPath) AddMoveLeft(x int, y int) {
 	// *p.MoveLinesLeft = moveLinesLeft
 	// p.PosY = y
 }
-func (p *VectorPath) AddMoveRight(x int, y int) {
-	move := [2]int{x, y}
+func (p *VectorPath) AddMoveRight(x float64, y float64) {
+	move := [2]float64{x, y}
 	moveLinesRight := append(*p.MoveLinesRight, &move)
 	*p.MoveLinesRight = moveLinesRight
 
@@ -93,49 +107,33 @@ type VectorImage struct {
 	Widget           int
 	Height           int
 	Bounds           image.Rectangle
-	OnePixelPercentX float64
-	OnePixelPercentY float64
+	OnePixelScaleX   float64
+	OnePixelScaleY   float64
 }
 
-func NewVectorImage(Img image.Image, ColorDiffPercent float64) *VectorImage {
-	bounds := Img.Bounds()
-	widget := bounds.Max.X
-	height := bounds.Max.Y
-	onePixelPercentX := 1 / float64(widget) * 100
-	onePixelPercentY := 1 / float64(height) * 100
+// func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
+// 	return float64(x) / float64(v.Widget), float64(y) / float64(v.Height)
+// }
 
-	return &VectorImage{
-		ColorDiffPercent: ColorDiffPercent,
-		Img:              Img,
-		Widget:           widget,
-		Height:           height,
-		Bounds:           bounds,
-		OnePixelPercentX: onePixelPercentX,
-		OnePixelPercentY: onePixelPercentY,
-	}
+func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
+	return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
 }
-func (v *VectorImage) MoveStart(x int, y int) (float64, float64) {
-	return float64(x) * v.OnePixelPercentX, float64(y) * v.OnePixelPercentY
-}
-func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
-	return float64(x+1) * v.OnePixelPercentX, float64(y+1) * v.OnePixelPercentY
-}
+
+// func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
+// 	return float64(x+1) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
+// }
 
 func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
-	bounds := v.Img.Bounds()
-	widget := bounds.Max.X
-	height := bounds.Max.Y
-	img := v.Img
 	colorDiffNum := float64(255 * v.ColorDiffPercent)
 	paths := []*VectorPath{}
 
 	jobChannel := &utils.JobChannel[func()]{}
-	newImage := image.NewRGBA(image.Rect(0, 0, widget, height))
-	pathShapes := make([]*VectorPath, widget)
+	newImage := image.NewRGBA(image.Rect(0, 0, v.Widget, v.Height))
+	pathShapes := make([]*VectorPath, v.Widget)
 
-	for row := 0; row < height; row++ {
-		for column := 0; column < widget; column++ {
-			r, g, b, a := img.At(column, row).RGBA()
+	for row := 0; row < v.Height; row++ {
+		for column := 0; column < v.Widget; column++ {
+			r, g, b, a := v.Img.At(column, row).RGBA()
 
 			red := math.Round(float64((r>>8))/colorDiffNum) * colorDiffNum
 			green := math.Round(float64((g>>8))/colorDiffNum) * colorDiffNum
@@ -153,7 +151,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			curOk, current := PathInclude(pathShapes, column)
 
 			equal := curOk && leftOk && *current == *left
-			// current.Equal(left)
+
 			isColorCurrent := curOk && current.ColorEqual(pixelColor)
 			isColorLeft := leftOk && left.ColorEqual(pixelColor)
 			// equal := curOk && leftOk && *current == *left
@@ -167,7 +165,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				// *current.MoveLinesRight = moveLinesRight
 				// index := *left.index
 
-				// *left.MoveLinesLeft = []*[2]int{}
+				// *left.MoveLinesLeSft = []*[2]int{}
 				// *left.MoveLinesRight = []*[2]int{}
 
 				// *left = *current
@@ -177,8 +175,6 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			if isColorLeft {
 				pathShapes[column] = left
 				current = left
-				curOk = true
-				isColorCurrent = true
 				equal = true
 			} else if !isColorCurrent {
 				current = NewVectorPath(pixelColor)
@@ -187,17 +183,21 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 					if current.isUsed {
 						paths = append(paths, current)
 					}
-				})
-				curOk = true
-				isColorCurrent = true
 			}
 
-			if !equal {
+			if column == 0 {
+				X, Y := v.MoveScale(column, row)
+				current.AddMoveLeft(X, Y)
+			} else if column == (v.Widget - 1) {
+				X, Y := v.MoveScale(column, row)
+				current.AddMoveRight(X, Y)
+			} else if !equal {
+				X, Y := v.MoveScale(column, row)
 				if leftOk {
-					left.AddMoveLeft(column, row)
+					left.AddMoveLeft(X, Y)
 				}
 				if curOk {
-					current.AddMoveRight(column, row)
+					current.AddMoveRight(X, Y)
 				}
 			}
 
@@ -205,7 +205,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	}
 	jobChannel.Run()
 	// fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
-	fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD")
+	fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD", len(paths))
 	return newImage, paths
 }
 
@@ -232,24 +232,24 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
+func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, saveWidget int, saveHeight int) {
 	os.Remove(fileName)
 
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
-	bounds := v.Img.Bounds()
-	widget := bounds.Max.X
-	height := bounds.Max.Y
+	// bounds := v.Img.Bounds()
+	// widget := bounds.Max.X
+	// height := bounds.Max.Y
 	// if _, err := f.Write([]byte(fmt.Printf(""))); err != nil {
 	// 	log.Fatal(err)
 	// }
 	// viewBox="0 0 %v %v"
 	if _, err := f.Write([]byte(fmt.Sprintf(
 		"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"%vpx\" height=\"%vpx\">\n",
-		widget,
-		height,
+		saveWidget,
+		saveHeight,
 	))); err != nil {
 		log.Fatal(err)
 	}
@@ -263,24 +263,38 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 
 		moveLinesLeft := *path.MoveLinesLeft
 		moveLinesRight := *path.MoveLinesRight
-		size := len(moveLinesLeft) + len(moveLinesRight)
-		if size < 3 {
+		sizeLeft := len(moveLinesLeft)
+		sizeRight := len(moveLinesRight)
+		if sizeLeft < 3 || sizeRight < 3 {
 			continue
 		}
 
-		d := ""
+		dLeft := ""
 		for _, XYPoint := range moveLinesLeft {
-			d = d + fmt.Sprintf("L%v %v ", XYPoint[0], XYPoint[1])
+			x := XYPoint[0] * float64(saveWidget)
+			y := XYPoint[1] * float64(saveHeight)
+			// strconv.FormatFloat(x, 'f', -1, 64)
+			// strconv.FormatFloat(x, 'f', -1, 64)
+
+			// fmt.Println("moveLinesLeft", x, y)
+			dLeft = dLeft + fmt.Sprintf("L%v %v ", x, y)
 		}
 
+		dRight := ""
 		for _, XYPoint := range moveLinesRight {
-			d = fmt.Sprintf("L%v %v ", XYPoint[0], XYPoint[1]) + d
+			x := XYPoint[0] * float64(saveWidget)
+			y := XYPoint[1] * float64(saveHeight)
+
+			// fmt.Println("moveLinesRight", x, y)
+			dRight = fmt.Sprintf("L%v %v ", x, y) + dRight
 		}
-		// fmt.Println("D: ", d)
+
+		// fmt.Println("D: ", dLeft)
+		// fmt.Println("D: ", dRight)
 		r, g, b, a := path.color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
-		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%vZ\" />\n", color, d[1:]))); err != nil {
+		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%v%vZ\" />\n", color, dLeft[1:], dRight))); err != nil {
 			log.Fatal(err)
 		}
 
@@ -292,4 +306,21 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string) {
 		log.Fatal(err)
 	}
 
+}
+func NewVectorImage(Img image.Image, ColorDiffPercent float64) *VectorImage {
+	bounds := Img.Bounds()
+	widget := bounds.Max.X
+	height := bounds.Max.Y
+	OnePixelScaleX := 1 / float64(widget)
+	OnePixelScaleY := 1 / float64(height)
+
+	return &VectorImage{
+		ColorDiffPercent: ColorDiffPercent,
+		Img:              Img,
+		Widget:           widget,
+		Height:           height,
+		Bounds:           bounds,
+		OnePixelScaleX:   OnePixelScaleX,
+		OnePixelScaleY:   OnePixelScaleY,
+	}
 }
