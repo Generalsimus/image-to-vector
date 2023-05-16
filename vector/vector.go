@@ -16,8 +16,8 @@ type VectorPath struct {
 	Lines          *[]*[]*[2]float64
 	MoveLinesLeft  *[]*[2]float64
 	MoveLinesRight *[]*[2]float64
-	PosY               int
-	PosYIndex        int
+	PosY           float64
+	PosYIndex      int
 	// AssignLeftAt   *VectorPath
 	// AssignRightAt  *VectorPath
 }
@@ -25,18 +25,43 @@ type VectorPath struct {
 //	func (p *VectorPath) Equal(el *VectorPath) bool {
 //		return *p.index == *el.index
 //	}
-func (p *VectorPath) AddMove(x float64, y float64){ 
-	if p.PosY != y { 
+func (p *VectorPath) AddMove(x float64, y float64) {
+	if p.PosY != y {
 		p.PosYIndex = 0
 	}
-	line:=p.Lines[p.PosYIndex]
+	lines := *p.Lines
+	line := lines[p.PosYIndex]
 	if line == nil {
-		
+		line = &[]*[2]float64{}
+		lines = append(lines, line)
 	}
+	*line = append(*line, &[2]float64{x, y})
 
-	
-	p.PosYIndex = p.PosYIndex+1
+	*p.Lines = lines
+	p.PosY = x
+	p.PosYIndex = p.PosYIndex + 1
 }
+
+func (p *VectorPath) ConcatLine(ConcatAt int) {
+	lines := *p.Lines
+	line1 := lines[ConcatAt-1]
+	line2 := lines[ConcatAt]
+	if line1 == nil || line2 == nil {
+		panic("LINE DO NOT EXISTS")
+	}
+	newLines := append(lines[:ConcatAt], lines[ConcatAt+1:]...)
+	if ConcatAt%2 == 0 {
+		// ("even")
+		line := append(*line1, *line2...)
+		*newLines[ConcatAt-1] = line
+	} else {
+		// ("odd")
+		line := append(*line2, *line1...)
+		*newLines[ConcatAt-1] = line
+	}
+	*p.Lines = newLines
+}
+
 func (p *VectorPath) ColorEqual(color color.Color) bool {
 	return p.color == color
 }
@@ -50,6 +75,8 @@ func NewVectorPath(color color.Color) *VectorPath {
 		color:          color,
 		MoveLinesLeft:  &moveLinesLeft,
 		MoveLinesRight: &moveLinesRight,
+		PosY:           0,
+		PosYIndex:      0,
 	}
 }
 
@@ -183,6 +210,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 					if current.isUsed {
 						paths = append(paths, current)
 					}
+				})
 			}
 
 			if column == 0 {
