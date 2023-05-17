@@ -25,21 +25,45 @@ type VectorPath struct {
 //	func (p *VectorPath) Equal(el *VectorPath) bool {
 //		return *p.index == *el.index
 //	}
+func (p *VectorPath) MoveAtIndex(x float64, y float64, index int) {
+	lines := *p.Lines
+
+	var line *[]*[2]float64
+
+	if len(lines) <= index || lines[index] == nil {
+		line = &[]*[2]float64{}
+		lines = append(lines, line)
+	} else {
+		line = lines[index]
+	}
+	if index%2 == 0 {
+		// ("even")
+		*line = append(*line, &[2]float64{x, y})
+	} else {
+		// ("odd")
+		*line = append([]*[2]float64{&[2]float64{x, y}}, *line...)
+	}
+
+	*p.Lines = lines
+}
 func (p *VectorPath) AddMove(x float64, y float64) {
 	if p.PosY != y {
 		p.PosYIndex = 0
 	}
-	lines := *p.Lines
-	line := lines[p.PosYIndex]
-	if line == nil {
-		line = &[]*[2]float64{}
-		lines = append(lines, line)
-	}
-	*line = append(*line, &[2]float64{x, y})
+	// fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
+	// if x == 0 && y == 0 {
+	// 	fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
+	// }
 
-	*p.Lines = lines
-	p.PosY = x
-	p.PosYIndex = p.PosYIndex + 1
+	// if p.PosYIndex == 1 {
+
+	// 	fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
+	// }
+	p.MoveAtIndex(x, y, p.PosYIndex)
+
+	// fmt.Println(len(*line))
+	p.PosY = y
+	p.PosYIndex++
 }
 
 func (p *VectorPath) ConcatLine(ConcatAt int) {
@@ -70,11 +94,13 @@ func NewVectorPath(color color.Color) *VectorPath {
 
 	moveLinesLeft := []*[2]float64{}
 	moveLinesRight := []*[2]float64{}
+	lines := []*[]*[2]float64{}
 	return &VectorPath{
 		isUsed:         true,
 		color:          color,
 		MoveLinesLeft:  &moveLinesLeft,
 		MoveLinesRight: &moveLinesRight,
+		Lines:          &lines,
 		PosY:           0,
 		PosYIndex:      0,
 	}
@@ -143,7 +169,8 @@ type VectorImage struct {
 // }
 
 func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
-	return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
+	// return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
+	return float64(x), float64(y)
 }
 
 // func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
@@ -181,8 +208,18 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 			isColorCurrent := curOk && current.ColorEqual(pixelColor)
 			isColorLeft := leftOk && left.ColorEqual(pixelColor)
+
+			// if curOk && !isColorCurrent {
+			// 	XScale, YScale := v.MoveScale(column, row)
+			// 	current.AddMove(XScale, YScale)
+			// 	left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+			// 	fmt.Println("MOVE")
+			// }
+			// originalLeft := left
+			// originalLeftOk := leftOk
 			// equal := curOk && leftOk && *current == *left
 			if isColorCurrent && isColorLeft && !equal {
+
 				// fmt.Println("ASSIGN")
 				// moveLinesLeft := append(*current.MoveLinesLeft, *left.MoveLinesLeft...)
 				// moveLinesLeft = append(moveLinesLeft, *left.MoveLinesRight...)
@@ -199,35 +236,128 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				// paths[index] = nil
 				// equal = true
 			}
+
 			if isColorLeft {
 				pathShapes[column] = left
 				current = left
+				curOk = true
 				equal = true
 			} else if !isColorCurrent {
+
 				current = NewVectorPath(pixelColor)
+				curOk = true
+				equal = false
 				pathShapes[column] = current
 				jobChannel.AddJob(func() {
+					// col := color.RGBA{0, 0, 0, 255}
+					// if current.isUsed && col == current.color {
+					// 	paths = append(paths, current)
+					// }
 					if current.isUsed {
 						paths = append(paths, current)
 					}
 				})
 			}
 
-			if column == 0 {
-				X, Y := v.MoveScale(column, row)
-				current.AddMoveLeft(X, Y)
-			} else if column == (v.Widget - 1) {
-				X, Y := v.MoveScale(column, row)
-				current.AddMoveRight(X, Y)
-			} else if !equal {
-				X, Y := v.MoveScale(column, row)
-				if leftOk {
-					left.AddMoveLeft(X, Y)
-				}
-				if curOk {
-					current.AddMoveRight(X, Y)
-				}
+			if column == 7 && row == 2 {
+				// fmt.Println(current.color, left.color, current.color == left.color, *current == *left)
+				fmt.Println("R: ", isColorLeft, isColorCurrent)
 			}
+			// if !equal {
+			// if !isColorLeft && originalLeftOk {
+			// 	XScale, YScale := v.MoveScale(column, row+1)
+			// 	originalLeft.AddMove(XScale, YScale)
+			// }
+
+			if ((column == 0) || (column == (v.Widget - 1)) || !equal) && curOk {
+				if column == (v.Widget - 1) {
+					XScale, YScale := v.MoveScale(column+1, row)
+					current.AddMove(XScale, YScale)
+
+					// XScale3, YScale3 := v.MoveScale(column+1, row)
+					// current.AddMove(XScale, YScale)
+
+					XScale2, YScale2 := v.MoveScale(column+1, row+1)
+					current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+					// XScale3, YScale3 := v.MoveScale(column+1, row)
+					// current.MoveAtIndex(XScale3, YScale3, current.PosYIndex-1)
+					// XScale4, YScale4 := v.MoveScale(column+1, row+1)
+					// current.MoveAtIndex(XScale4, YScale4, current.PosYIndex-1)
+				} else {
+
+					XScale, YScale := v.MoveScale(column, row)
+					current.AddMove(XScale, YScale)
+
+					// XScale3, YScale3 := v.MoveScale(column+1, row)
+					// current.AddMove(XScale, YScale)
+
+					XScale2, YScale2 := v.MoveScale(column, row+1)
+					current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+				}
+				///////////////////////////////////////////////////////////
+
+				// XScale, YScale := v.MoveScale(column, row)
+				// current.AddMove(XScale, YScale)
+
+				// XScale2, YScale2 := v.MoveScale(column+1, row)
+				// current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+
+			}
+			if !equal && leftOk {
+				XScale, YScale := v.MoveScale(column, row)
+				left.AddMove(XScale, YScale)
+
+				XScale2, YScale2 := v.MoveScale(column, row+1)
+				left.MoveAtIndex(XScale2, YScale2, left.PosYIndex-1)
+
+				// XScale2, YScale2 := v.MoveScale(column, row+1)
+				// left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+				// if !isColorLeft {
+				// 	XScale2, YScale2 := v.MoveScale(column, row+1)
+				// 	left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+
+				// }
+
+				// if isColorCurrent {
+				// 	XScale, YScale := v.MoveScale(column, row)
+				// 	left.AddMove(XScale, YScale)
+
+				// } else {
+				// 	XScale2, YScale2 := v.MoveScale(column, row+1)
+				// 	left.AddMove(XScale2, YScale2)
+				// }
+
+				// XScale3, YScale3 := v.MoveScale(column+1, row)
+				// left.MoveAtIndex(XScale3, YScale3, left.PosYIndex-1)
+
+				// XScale2, YScale2 := v.MoveScale(column, row+1)
+				// left.MoveAtIndex(XScale2, YScale2, left.PosYIndex-1)
+
+				// if !isColorLeft && leftOk {
+				// XScale2, YScale2 := v.MoveScale(column, row+1)
+				// left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+
+				// }
+
+				// XScale1, YScale1 := v.MoveScale(column+1, row+1)
+				// left.AddMove(XScale1, YScale1)
+			}
+			// if column == 0 {
+			// .3
+			// 	X, Y := v.MoveScale(column, row)
+			// 	current.AddMove(X, Y)
+			// } else if column == (v.Widget - 1) {
+			// 	X, Y := v.MoveScale(column, row)
+			// 	current.AddMove(X, Y)
+			// } else if !equal {
+			// 	X, Y := v.MoveScale(column, row)
+			// 	if leftOk {
+			// 		left.AddMove(X, Y)
+			// 	}
+			// 	if curOk {
+			// 		current.AddMove(X, Y)
+			// 	}
+			// }
 
 		}
 	}
@@ -289,40 +419,49 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 			continue
 		}
 
-		moveLinesLeft := *path.MoveLinesLeft
-		moveLinesRight := *path.MoveLinesRight
-		sizeLeft := len(moveLinesLeft)
-		sizeRight := len(moveLinesRight)
-		if sizeLeft < 3 || sizeRight < 3 {
-			continue
+		// moveLinesLeft := *path.MoveLinesLeft
+		// moveLinesRight := *path.MoveLinesRight
+		// sizeLeft := len(moveLinesLeft)
+		// sizeRight := len(moveLinesRight)
+		// if sizeLeft < 3 || sizeRight < 3 {
+		//გამოიწვიე საკუთარი თავი
+		// 	continue
+		// }
+		d := ""
+		for indexLine, line := range *path.Lines {
+			fmt.Println("Index: ", indexLine)
+			for _, XYPoint := range *line {
+				x := XYPoint[0]
+				// * float64(saveWidget)
+				y := XYPoint[1]
+				// * float64(saveHeight)
+				fmt.Println("X: ", x, "  Y: ", y)
+				d = d + fmt.Sprintf("L%v %v ", x, y)
+			}
+
 		}
+		// fmt.Println("d:", d)
+		// dLeft := ""
+		// for _, XYPoint := range moveLinesLeft {
+		// 	x := XYPoint[0] * float64(saveWidget)
+		// 	y := XYPoint[1] * float64(saveHeight)
+		// 	dLeft = dLeft + fmt.Sprintf("L%v %v ", x, y)
+		// }
 
-		dLeft := ""
-		for _, XYPoint := range moveLinesLeft {
-			x := XYPoint[0] * float64(saveWidget)
-			y := XYPoint[1] * float64(saveHeight)
-			// strconv.FormatFloat(x, 'f', -1, 64)
-			// strconv.FormatFloat(x, 'f', -1, 64)
+		// dRight := ""
+		// for _, XYPoint := range moveLinesRight {
+		// 	x := XYPoint[0] * float64(saveWidget)
+		// 	y := XYPoint[1] * float64(saveHeight)
 
-			// fmt.Println("moveLinesLeft", x, y)
-			dLeft = dLeft + fmt.Sprintf("L%v %v ", x, y)
-		}
-
-		dRight := ""
-		for _, XYPoint := range moveLinesRight {
-			x := XYPoint[0] * float64(saveWidget)
-			y := XYPoint[1] * float64(saveHeight)
-
-			// fmt.Println("moveLinesRight", x, y)
-			dRight = fmt.Sprintf("L%v %v ", x, y) + dRight
-		}
+		// 	dRight = fmt.Sprintf("L%v %v ", x, y) + dRight
+		// }
 
 		// fmt.Println("D: ", dLeft)
 		// fmt.Println("D: ", dRight)
 		r, g, b, a := path.color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
-		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%v%vZ\" />\n", color, dLeft[1:], dRight))); err != nil {
+		if _, err := f.Write([]byte(fmt.Sprintf("<path fill=\"%v\" d=\"M%vZ\" />\n", color, d[1:]))); err != nil {
 			log.Fatal(err)
 		}
 

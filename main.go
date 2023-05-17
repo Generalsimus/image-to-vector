@@ -67,7 +67,7 @@ func main() {
 		fmt.Println("FILENAME: ", fileName)
 		image, vector := vectorImg.ImageVector()
 
-		upScale := 1.20
+		upScale := 1.00
 		newWidget := int(float64(vectorImg.Widget) * upScale)
 		newHeight := int(float64(vectorImg.Height) * upScale)
 		///////////////////////////////////////
