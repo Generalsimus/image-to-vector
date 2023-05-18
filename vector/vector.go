@@ -18,7 +18,12 @@ type VectorPath struct {
 	MoveLinesRight *[]*[2]float64
 	PosY           float64
 	PosYIndex      int
+	Line           *[]*[2]float64
+	MinY           int
+	MaxY           int
+	// MinX
 	// AssignLeftAt   *VectorPath
+
 	// AssignRightAt  *VectorPath
 }
 
@@ -249,19 +254,19 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				equal = false
 				pathShapes[column] = current
 				jobChannel.AddJob(func() {
-					// col := color.RGBA{0, 0, 0, 255}
-					// if current.isUsed && col == current.color {
-					// 	paths = append(paths, current)
-					// }
-					if current.isUsed {
+					col := color.RGBA{0, 0, 0, 255}
+					if current.isUsed && col == current.color {
 						paths = append(paths, current)
 					}
+					// if current.isUsed {
+					// 	paths = append(paths, current)
+					// }
 				})
 			}
 
 			if column == 7 && row == 2 {
 				// fmt.Println(current.color, left.color, current.color == left.color, *current == *left)
-				fmt.Println("R: ", isColorLeft, isColorCurrent)
+				// fmt.Println("R: ", isColorLeft, isColorCurrent)
 			}
 			// if !equal {
 			// if !isColorLeft && originalLeftOk {
