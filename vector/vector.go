@@ -11,35 +11,62 @@ import (
 )
 
 type VectorPath struct {
-	isUsed    bool
-	color     color.Color
-	StartLine *[]*[2]int
-	EndLine   *[]*[2]int
+	isUsed        *bool
+	color         color.Color
+	StartLine     *[]*[2]int
+	EndLine       *[]*[2]int
+	CurrentStartY int
+	CurrentEndY   int
 }
 
 func (p *VectorPath) AddMoveStart(columX int, rowY int) {
-	move1 := [2]int{columX, rowY}
-	move2 := [2]int{columX, rowY + 1}
+	if p.CurrentStartY != rowY {
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
 
-	*p.StartLine = append(*p.StartLine, &move1, &move2)
-
+		*p.StartLine = append(*p.StartLine, &move1, &move2)
+		p.CurrentStartY = rowY
+	}
 }
 func (p *VectorPath) AddMoveEnd(columX int, rowY int) {
-	move1 := [2]int{columX, rowY}
-	move2 := [2]int{columX, rowY + 1}
+	if p.CurrentEndY == rowY {
+		endLine := *p.EndLine
 
-	*p.EndLine = append(*p.EndLine, &move1, &move2)
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+		*p.EndLine = append(endLine[:len(endLine)-2], &move1, &move2)
 
+	} else {
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+
+		*p.EndLine = append(*p.EndLine, &move1, &move2)
+		p.CurrentEndY = rowY
+	}
+}
+func (p *VectorPath) Concat(p2 *VectorPath) {
+
+	*p2.isUsed = false
+	p.CurrentStartY = p2.CurrentStartY
+	p.CurrentEndY = p2.CurrentEndY
+
+	*p.StartLine = append(*p.StartLine, *p2.StartLine...)
+	*p.EndLine = append(*p.EndLine, *p2.EndLine...)
+
+	*p2 = *p
 }
 
 func NewVectorPath(color color.Color) *VectorPath {
 	startLine := []*[2]int{}
 	endLine := []*[2]int{}
+	isUsed := true
 	return &VectorPath{
-		isUsed:    true,
-		color:     color,
-		StartLine: &startLine,
-		EndLine:   &endLine,
+		isUsed:        &isUsed,
+		color:         color,
+		StartLine:     &startLine,
+		EndLine:       &endLine,
+		CurrentStartY: -1,
+		CurrentEndY:   -1,
 	}
 }
 
@@ -69,10 +96,10 @@ type VectorImage struct {
 // 	return float64(x) / float64(v.Widget), float64(y) / float64(v.Height)
 // }
 
-func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
-	// return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
-	return float64(x), float64(y)
-}
+// func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
+// 	// return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
+// 	return float64(x), float64(y)
+// }
 
 // func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
 // 	return float64(x+1) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
@@ -85,6 +112,10 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	jobChannel := &utils.JobChannel[func()]{}
 	newImage := image.NewRGBA(image.Rect(0, 0, v.Widget, v.Height))
 	pathShapes := make([]*VectorPath, v.Widget)
+	////////////////////////////////////////////////
+	// var wg sync.WaitGroup
+	// wg.Add(1)
+	// var ProcessEnd sync.WaitGroup
 
 	for rowY := 0; rowY < v.Height; rowY++ {
 		for columnX := 0; columnX < v.Widget; columnX++ {
@@ -105,27 +136,27 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			leftOk, left := PathInclude(pathShapes, columnX-1)
 			curOk, current := PathInclude(pathShapes, columnX)
 
-			// equal := curOk && leftOk && *current == *left
+			equal := curOk && leftOk && *current == *left
 
 			isColorCurrent := curOk && current.color == pixelColor
 			isColorLeft := leftOk && left.color == pixelColor
+			if !equal && isColorCurrent && isColorLeft {
+				fmt.Println(columnX, rowY, *current, *left)
+				current.Concat(left)
+			}
 
 			if isColorLeft {
 				pathShapes[columnX] = left
 				current = left
 				curOk = true
-				// equal = true
 			} else if !isColorCurrent {
 				current = NewVectorPath(pixelColor)
 				curOk = true
-				// equal = false
+				isUsed := current.isUsed
 				pathShapes[columnX] = current
+
 				jobChannel.AddJob(func() {
-					// col := color.RGBA{0, 0, 0, 255}
-					// if current.isUsed && col == current.color {
-					// 	paths = append(paths, current)
-					// }
-					if current.isUsed {
+					if *isUsed {
 						paths = append(paths, current)
 					}
 				})
@@ -142,6 +173,9 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			}
 		}
 	}
+	// defer
+	// wg.Done()
+	// ProcessEnd.Wait()
 	jobChannel.Run()
 	// fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 	fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD", len(paths))
@@ -186,62 +220,31 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 	// }
 	// viewBox="0 0 %v %v"
 	if _, err := f.Write([]byte(fmt.Sprintf(
-		"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"%vpx\" height=\"%vpx\">\n",
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"%vpx\" height=\"%vpx\" viewBox=\"0 0 %v %v\">\n",
+		saveWidget,
+		saveHeight,
 		saveWidget,
 		saveHeight,
 	))); err != nil {
 		log.Fatal(err)
 	}
-	// <svg height="210" width="400">
-	// fmt.Println("paths: ", paths)</svg></svg>
 
 	for _, path := range paths {
 		if path == nil {
 			continue
 		}
-
-		// moveLinesLeft := *path.MoveLinesLeft
-		// moveLinesRight := *path.MoveLinesRight
-		// sizeLeft := len(moveLinesLeft)
-		// sizeRight := len(moveLinesRight)
-		// if sizeLeft < 3 || sizeRight < 3 {
-		//გამოიწვიე საკუთარი თავი
-		// 	continue
-		// }
 		d := ""
 		for _, XYPoint := range *path.StartLine {
 			x := XYPoint[0]
-			// * float64(saveWidget)
 			y := XYPoint[1]
-			// * float64(saveHeight)
 			d = d + fmt.Sprintf("L%v %v ", x, y)
 		}
 		for _, XYPoint := range *path.EndLine {
 			x := XYPoint[0]
-			// * float64(saveWidget)
 			y := XYPoint[1]
-			// * float64(saveHeight)
 			d = fmt.Sprintf("L%v %v ", x, y) + d
 		}
-		// }
-		// fmt.Println("d:", d)
-		// dLeft := ""
-		// for _, XYPoint := range moveLinesLeft {
-		// 	x := XYPoint[0] * float64(saveWidget)
-		// 	y := XYPoint[1] * float64(saveHeight)
-		// 	dLeft = dLeft + fmt.Sprintf("L%v %v ", x, y)
-		// }
 
-		// dRight := ""
-		// for _, XYPoint := range moveLinesRight {
-		// 	x := XYPoint[0] * float64(saveWidget)
-		// 	y := XYPoint[1] * float64(saveHeight)
-
-		// 	dRight = fmt.Sprintf("L%v %v ", x, y) + dRight
-		// }
-
-		// fmt.Println("D: ", dLeft)
-		// fmt.Println("D: ", dRight)
 		r, g, b, a := path.color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
 
