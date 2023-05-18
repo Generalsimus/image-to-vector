@@ -11,140 +11,36 @@ import (
 )
 
 type VectorPath struct {
-	isUsed         bool
-	color          color.Color
-	Lines          *[]*[]*[2]float64
-	MoveLinesLeft  *[]*[2]float64
-	MoveLinesRight *[]*[2]float64
-	PosY           float64
-	PosYIndex      int
-	Line           *[]*[2]float64
-	MinY           int
-	MaxY           int
-	// MinX
-	// AssignLeftAt   *VectorPath
-
-	// AssignRightAt  *VectorPath
+	isUsed    bool
+	color     color.Color
+	StartLine *[]*[2]int
+	EndLine   *[]*[2]int
 }
 
-//	func (p *VectorPath) Equal(el *VectorPath) bool {
-//		return *p.index == *el.index
-//	}
-func (p *VectorPath) MoveAtIndex(x float64, y float64, index int) {
-	lines := *p.Lines
+func (p *VectorPath) AddMoveStart(columX int, rowY int) {
+	move1 := [2]int{columX, rowY}
+	move2 := [2]int{columX, rowY + 1}
 
-	var line *[]*[2]float64
+	*p.StartLine = append(*p.StartLine, &move1, &move2)
 
-	if len(lines) <= index || lines[index] == nil {
-		line = &[]*[2]float64{}
-		lines = append(lines, line)
-	} else {
-		line = lines[index]
-	}
-	if index%2 == 0 {
-		// ("even")
-		*line = append(*line, &[2]float64{x, y})
-	} else {
-		// ("odd")
-		*line = append([]*[2]float64{&[2]float64{x, y}}, *line...)
-	}
-
-	*p.Lines = lines
 }
-func (p *VectorPath) AddMove(x float64, y float64) {
-	if p.PosY != y {
-		p.PosYIndex = 0
-	}
-	// fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
-	// if x == 0 && y == 0 {
-	// 	fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
-	// }
+func (p *VectorPath) AddMoveEnd(columX int, rowY int) {
+	move1 := [2]int{columX, rowY}
+	move2 := [2]int{columX, rowY + 1}
 
-	// if p.PosYIndex == 1 {
+	*p.EndLine = append(*p.EndLine, &move1, &move2)
 
-	// 	fmt.Println(x, "|", y, "|", p.PosY, "|", p.PosY != y)
-	// }
-	p.MoveAtIndex(x, y, p.PosYIndex)
-
-	// fmt.Println(len(*line))
-	p.PosY = y
-	p.PosYIndex++
-}
-
-func (p *VectorPath) ConcatLine(ConcatAt int) {
-	lines := *p.Lines
-	line1 := lines[ConcatAt-1]
-	line2 := lines[ConcatAt]
-	if line1 == nil || line2 == nil {
-		panic("LINE DO NOT EXISTS")
-	}
-	newLines := append(lines[:ConcatAt], lines[ConcatAt+1:]...)
-	if ConcatAt%2 == 0 {
-		// ("even")
-		line := append(*line1, *line2...)
-		*newLines[ConcatAt-1] = line
-	} else {
-		// ("odd")
-		line := append(*line2, *line1...)
-		*newLines[ConcatAt-1] = line
-	}
-	*p.Lines = newLines
-}
-
-func (p *VectorPath) ColorEqual(color color.Color) bool {
-	return p.color == color
 }
 
 func NewVectorPath(color color.Color) *VectorPath {
-
-	moveLinesLeft := []*[2]float64{}
-	moveLinesRight := []*[2]float64{}
-	lines := []*[]*[2]float64{}
+	startLine := []*[2]int{}
+	endLine := []*[2]int{}
 	return &VectorPath{
-		isUsed:         true,
-		color:          color,
-		MoveLinesLeft:  &moveLinesLeft,
-		MoveLinesRight: &moveLinesRight,
-		Lines:          &lines,
-		PosY:           0,
-		PosYIndex:      0,
+		isUsed:    true,
+		color:     color,
+		StartLine: &startLine,
+		EndLine:   &endLine,
 	}
-}
-
-func (p *VectorPath) AddMoveLeft(x float64, y float64) {
-	move := [2]float64{x, y}
-
-	moveLinesLeft := append(*p.MoveLinesLeft, &move)
-	*p.MoveLinesLeft = moveLinesLeft
-
-	// move := [2]int{x, y}
-	// moveLinesLeft := *p.MoveLinesLeft
-	// lastIndex := len(moveLinesLeft) - 1
-
-	// if lastIndex > 0 && moveLinesLeft[lastIndex][1] == y && x < moveLinesLeft[lastIndex][0] {
-	// 	moveLinesLeft[lastIndex] = &move
-	// } else {
-	// 	moveLinesLeft = append(moveLinesLeft, &move)
-	// }
-	// *p.MoveLinesLeft = moveLinesLeft
-	// p.PosY = y
-}
-func (p *VectorPath) AddMoveRight(x float64, y float64) {
-	move := [2]float64{x, y}
-	moveLinesRight := append(*p.MoveLinesRight, &move)
-	*p.MoveLinesRight = moveLinesRight
-
-	// move := [2]int{x, y}
-	// moveLinesRight := *p.MoveLinesRight
-	// lastIndex := len(moveLinesRight) - 1
-
-	// if lastIndex > 0 && moveLinesRight[lastIndex][1] == y && x > moveLinesRight[lastIndex][0] {
-	// 	moveLinesRight[lastIndex] = &move
-	// } else {
-	// 	moveLinesRight = append(moveLinesRight, &move)
-	// }
-	// *p.MoveLinesRight = moveLinesRight
-	// p.PosY = y
 }
 
 func PathInclude(vectorPaths []*VectorPath, index int) (bool, *VectorPath) {
@@ -190,9 +86,9 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	newImage := image.NewRGBA(image.Rect(0, 0, v.Widget, v.Height))
 	pathShapes := make([]*VectorPath, v.Widget)
 
-	for row := 0; row < v.Height; row++ {
-		for column := 0; column < v.Widget; column++ {
-			r, g, b, a := v.Img.At(column, row).RGBA()
+	for rowY := 0; rowY < v.Height; rowY++ {
+		for columnX := 0; columnX < v.Widget; columnX++ {
+			r, g, b, a := v.Img.At(columnX, rowY).RGBA()
 
 			red := math.Round(float64((r>>8))/colorDiffNum) * colorDiffNum
 			green := math.Round(float64((g>>8))/colorDiffNum) * colorDiffNum
@@ -204,166 +100,46 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				uint8(blue),
 				uint8(a),
 			}
-			newImage.Set(column, row, pixelColor)
+			newImage.Set(columnX, rowY, pixelColor)
 
-			leftOk, left := PathInclude(pathShapes, column-1)
-			curOk, current := PathInclude(pathShapes, column)
+			leftOk, left := PathInclude(pathShapes, columnX-1)
+			curOk, current := PathInclude(pathShapes, columnX)
 
-			equal := curOk && leftOk && *current == *left
-
-			isColorCurrent := curOk && current.ColorEqual(pixelColor)
-			isColorLeft := leftOk && left.ColorEqual(pixelColor)
-
-			// if curOk && !isColorCurrent {
-			// 	XScale, YScale := v.MoveScale(column, row)
-			// 	current.AddMove(XScale, YScale)
-			// 	left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-			// 	fmt.Println("MOVE")
-			// }
-			// originalLeft := left
-			// originalLeftOk := leftOk
 			// equal := curOk && leftOk && *current == *left
-			if isColorCurrent && isColorLeft && !equal {
 
-				// fmt.Println("ASSIGN")
-				// moveLinesLeft := append(*current.MoveLinesLeft, *left.MoveLinesLeft...)
-				// moveLinesLeft = append(moveLinesLeft, *left.MoveLinesRight...)
-
-				// moveLinesRight := append(*current.MoveLinesRight, *left.MoveLinesRight...)
-				// *current.MoveLinesLeft = moveLinesLeft
-				// *current.MoveLinesRight = moveLinesRight
-				// index := *left.index
-
-				// *left.MoveLinesLeSft = []*[2]int{}
-				// *left.MoveLinesRight = []*[2]int{}
-
-				// *left = *current
-				// paths[index] = nil
-				// equal = true
-			}
+			isColorCurrent := curOk && current.color == pixelColor
+			isColorLeft := leftOk && left.color == pixelColor
 
 			if isColorLeft {
-				pathShapes[column] = left
+				pathShapes[columnX] = left
 				current = left
 				curOk = true
-				equal = true
+				// equal = true
 			} else if !isColorCurrent {
-
 				current = NewVectorPath(pixelColor)
 				curOk = true
-				equal = false
-				pathShapes[column] = current
+				// equal = false
+				pathShapes[columnX] = current
 				jobChannel.AddJob(func() {
-					col := color.RGBA{0, 0, 0, 255}
-					if current.isUsed && col == current.color {
-						paths = append(paths, current)
-					}
-					// if current.isUsed {
+					// col := color.RGBA{0, 0, 0, 255}
+					// if current.isUsed && col == current.color {
 					// 	paths = append(paths, current)
 					// }
+					if current.isUsed {
+						paths = append(paths, current)
+					}
 				})
 			}
 
-			if column == 7 && row == 2 {
-				// fmt.Println(current.color, left.color, current.color == left.color, *current == *left)
-				// fmt.Println("R: ", isColorLeft, isColorCurrent)
+			if columnX == (v.Widget - 1) {
+				current.AddMoveEnd(columnX+1, rowY)
 			}
-			// if !equal {
-			// if !isColorLeft && originalLeftOk {
-			// 	XScale, YScale := v.MoveScale(column, row+1)
-			// 	originalLeft.AddMove(XScale, YScale)
-			// }
-
-			if ((column == 0) || (column == (v.Widget - 1)) || !equal) && curOk {
-				if column == (v.Widget - 1) {
-					XScale, YScale := v.MoveScale(column+1, row)
-					current.AddMove(XScale, YScale)
-
-					// XScale3, YScale3 := v.MoveScale(column+1, row)
-					// current.AddMove(XScale, YScale)
-
-					XScale2, YScale2 := v.MoveScale(column+1, row+1)
-					current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-					// XScale3, YScale3 := v.MoveScale(column+1, row)
-					// current.MoveAtIndex(XScale3, YScale3, current.PosYIndex-1)
-					// XScale4, YScale4 := v.MoveScale(column+1, row+1)
-					// current.MoveAtIndex(XScale4, YScale4, current.PosYIndex-1)
-				} else {
-
-					XScale, YScale := v.MoveScale(column, row)
-					current.AddMove(XScale, YScale)
-
-					// XScale3, YScale3 := v.MoveScale(column+1, row)
-					// current.AddMove(XScale, YScale)
-
-					XScale2, YScale2 := v.MoveScale(column, row+1)
-					current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
+			if !isColorLeft {
+				if leftOk {
+					left.AddMoveEnd(columnX, rowY)
 				}
-				///////////////////////////////////////////////////////////
-
-				// XScale, YScale := v.MoveScale(column, row)
-				// current.AddMove(XScale, YScale)
-
-				// XScale2, YScale2 := v.MoveScale(column+1, row)
-				// current.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-
+				current.AddMoveStart(columnX, rowY)
 			}
-			if !equal && leftOk {
-				XScale, YScale := v.MoveScale(column, row)
-				left.AddMove(XScale, YScale)
-
-				XScale2, YScale2 := v.MoveScale(column, row+1)
-				left.MoveAtIndex(XScale2, YScale2, left.PosYIndex-1)
-
-				// XScale2, YScale2 := v.MoveScale(column, row+1)
-				// left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-				// if !isColorLeft {
-				// 	XScale2, YScale2 := v.MoveScale(column, row+1)
-				// 	left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-
-				// }
-
-				// if isColorCurrent {
-				// 	XScale, YScale := v.MoveScale(column, row)
-				// 	left.AddMove(XScale, YScale)
-
-				// } else {
-				// 	XScale2, YScale2 := v.MoveScale(column, row+1)
-				// 	left.AddMove(XScale2, YScale2)
-				// }
-
-				// XScale3, YScale3 := v.MoveScale(column+1, row)
-				// left.MoveAtIndex(XScale3, YScale3, left.PosYIndex-1)
-
-				// XScale2, YScale2 := v.MoveScale(column, row+1)
-				// left.MoveAtIndex(XScale2, YScale2, left.PosYIndex-1)
-
-				// if !isColorLeft && leftOk {
-				// XScale2, YScale2 := v.MoveScale(column, row+1)
-				// left.MoveAtIndex(XScale2, YScale2, current.PosYIndex-1)
-
-				// }
-
-				// XScale1, YScale1 := v.MoveScale(column+1, row+1)
-				// left.AddMove(XScale1, YScale1)
-			}
-			// if column == 0 {
-			// .3
-			// 	X, Y := v.MoveScale(column, row)
-			// 	current.AddMove(X, Y)
-			// } else if column == (v.Widget - 1) {
-			// 	X, Y := v.MoveScale(column, row)
-			// 	current.AddMove(X, Y)
-			// } else if !equal {
-			// 	X, Y := v.MoveScale(column, row)
-			// 	if leftOk {
-			// 		left.AddMove(X, Y)
-			// 	}
-			// 	if curOk {
-			// 		current.AddMove(X, Y)
-			// 	}
-			// }
-
 		}
 	}
 	jobChannel.Run()
@@ -433,18 +209,21 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 		// 	continue
 		// }
 		d := ""
-		for indexLine, line := range *path.Lines {
-			fmt.Println("Index: ", indexLine)
-			for _, XYPoint := range *line {
-				x := XYPoint[0]
-				// * float64(saveWidget)
-				y := XYPoint[1]
-				// * float64(saveHeight)
-				fmt.Println("X: ", x, "  Y: ", y)
-				d = d + fmt.Sprintf("L%v %v ", x, y)
-			}
-
+		for _, XYPoint := range *path.StartLine {
+			x := XYPoint[0]
+			// * float64(saveWidget)
+			y := XYPoint[1]
+			// * float64(saveHeight)
+			d = d + fmt.Sprintf("L%v %v ", x, y)
 		}
+		for _, XYPoint := range *path.EndLine {
+			x := XYPoint[0]
+			// * float64(saveWidget)
+			y := XYPoint[1]
+			// * float64(saveHeight)
+			d = fmt.Sprintf("L%v %v ", x, y) + d
+		}
+		// }
 		// fmt.Println("d:", d)
 		// dLeft := ""
 		// for _, XYPoint := range moveLinesLeft {
