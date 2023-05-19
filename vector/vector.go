@@ -46,14 +46,23 @@ func (p *VectorPath) AddMoveEnd(columX int, rowY int) {
 }
 func (p *VectorPath) Concat(p2 *VectorPath) {
 
-	*p2.isUsed = false
-	p.CurrentStartY = p2.CurrentStartY
-	p.CurrentEndY = p2.CurrentEndY
+	// *p2.isUsed = false
+	// p.CurrentStartY = p2.CurrentStartY
+	// p.CurrentEndY = p2.CurrentEndY
 
-	*p.StartLine = append(*p.StartLine, *p2.StartLine...)
-	*p.EndLine = append(*p.EndLine, *p2.EndLine...)
+	// startLine := *p.StartLine
+	// last1 := startLine[len(startLine)-1]
+	// p.AddMoveStart(last1[0], last1[1])
+	// //////////////////////////////////
+	// endLine := *p.EndLine
+	// last2 := endLine[len(endLine)-1]
+	// p.AddMoveStart(last2[0], last2[1])
+	// // startLine := *p.StartLine
+	// // *p.StartLine = append(startLine, *p2.StartLine...)
+	// // endLine := *p.EndLine
+	// // *p.EndLine = append(endLine, *p2.EndLine...)
 
-	*p2 = *p
+	// *p2 = *p
 }
 
 func NewVectorPath(color color.Color) *VectorPath {
@@ -152,13 +161,24 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			} else if !isColorCurrent {
 				current = NewVectorPath(pixelColor)
 				curOk = true
-				isUsed := current.isUsed
+				// isUsed := current.isUsed
 				pathShapes[columnX] = current
 
 				jobChannel.AddJob(func() {
-					if *isUsed {
-						paths = append(paths, current)
-					}
+
+					// col := color.RGBA{
+					// 	255,
+					// 	51,
+					// 	51,
+					// 	255,
+					// }
+
+					// if col == current.color && *isUsed {
+					paths = append(paths, current)
+					// }
+					// if *isUsed {
+					// 	paths = append(paths, current)
+					// }
 				})
 			}
 
