@@ -15,9 +15,70 @@ type VectorPath struct {
 	color         color.Color
 	StartLine     *[]*[2]int
 	EndLine       *[]*[2]int
-	Lines         *[]*[]*[2]int
+	StartLines    *[]*[]*[2]int
+	EndLines      *[]*[]*[2]int
 	CurrentStartY int
-	CurrentEndY   int
+	// CurrentStartYLineIndex int
+	CurrentEndY int
+	LineIndex   int
+	// CurrentEndYLineIndex   int
+}
+
+func (p *VectorPath) AddStart1(columX int, rowY int) {
+	if 
+
+}
+
+func (p *VectorPath) AddStart(columX int, rowY int) {
+	if rowY != p.CurrentStartY {
+		p.CurrentStartY = rowY
+		p.CurrentStartYLineIndex = 0
+	}
+
+	startLines := *p.StartLines
+	var startLine *[]*[2]int
+
+	if len(startLines) <= p.CurrentStartYLineIndex {
+		startLine = &[]*[2]int{}
+		*p.StartLines = append(*p.StartLines, startLine)
+	} else {
+		startLine = startLines[p.CurrentStartYLineIndex]
+	}
+
+	if p.CurrentStartY != rowY {
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+
+		*startLine = append(*startLine, &move1, &move2)
+		p.CurrentStartY = rowY
+	}
+	*p.StartLines = startLines
+	p.CurrentStartYLineIndex = p.CurrentStartYLineIndex + 1
+}
+
+func (p *VectorPath) AddEnd(columX int, rowY int) {
+	if rowY != p.CurrentStartY {
+		p.CurrentEndYLineIndex = 0
+	}
+	endLines := *p.EndLines
+	var endLine *[]*[2]int
+	if len(endLines) <= p.CurrentEndYLineIndex {
+		endLine = &[]*[2]int{}
+		*p.EndLines = append(*p.EndLines, endLine)
+	} else {
+		endLine = endLines[p.CurrentEndYLineIndex]
+	}
+	if p.CurrentStartY != rowY {
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+
+		*endLine = append(*endLine, &move1, &move2)
+		p.CurrentStartY = rowY
+	}
+	*p.EndLines = endLines
+
+	p.CurrentEndY = rowY
+	p.CurrentEndYLineIndex = p.CurrentEndYLineIndex + 1
 }
 
 //	func (p *VectorPath) String() string {
