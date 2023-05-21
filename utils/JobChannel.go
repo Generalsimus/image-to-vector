@@ -7,7 +7,9 @@ type JobChannel[F func()] struct {
 func (j *JobChannel[F]) AddJob(callBack F) {
 	current := j.callBack
 	if current == nil {
-		j.callBack = callBack
+		j.callBack = func() {
+			callBack()
+		}
 	} else {
 		j.callBack = func() {
 			current()

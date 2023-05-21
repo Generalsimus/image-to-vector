@@ -15,6 +15,7 @@ type VectorPath struct {
 	color         color.Color
 	StartLine     *[]*[2]int
 	EndLine       *[]*[2]int
+	Lines         *[]*[]*[2]int
 	CurrentStartY int
 	CurrentEndY   int
 }
@@ -53,41 +54,23 @@ func (p *VectorPath) AddMoveEnd(columX int, rowY int) {
 	}
 }
 func (p *VectorPath) Concat(p2 *VectorPath) {
-
+	// return
 	*p2.isUsed = false
-	fmt.Println("CurrentStartY: ", p.CurrentStartY, p2.CurrentStartY)
-	fmt.Println("CurrentEndY: ", p.CurrentEndY, p2.CurrentEndY)
 
-	if p2.CurrentStartY != -1 {
-		for _, v := range *p2.StartLine {
-			move1 := [2]int{v[0], v[1]}
-			move2 := [2]int{v[0], v[1] + 1}
+	startLineP2 := *p2.StartLine
+	endLineP2 := *p2.EndLine
+	startLineP := *p.StartLine
 
-			*p.StartLine = append(*p.StartLine, &move1, &move2)
-		}
+	for _, point := range endLineP2 {
+		startLineP2 = append([]*[2]int{point}, startLineP2...)
 	}
-	if p2.CurrentEndY != -1 {
-		p.CurrentEndY = p2.CurrentEndY
-		for _, v := range *p2.EndLine {
-			move1 := [2]int{v[0], v[1]}
-			move2 := [2]int{v[0], v[1] + 1}
 
-			*p.EndLine = append(*p.EndLine, &move1, &move2)
-		}
+	for i := len(startLineP) - 1; i >= 0; i-- {
+		startLineP2 = append([]*[2]int{startLineP[i]}, startLineP2...)
 	}
-	// startLine := *p.StartLine
-	// last1 := startLine[len(startLine)-2]
-	// p.AddMoveStart(last1[0], last1[1])
-	// // //////////////////////////////////
-	// endLine := *p.EndLine
-	// last2 := endLine[len(endLine)-2]
-	// p.AddMoveEnd(last2[0], last2[1])
-	// startLine := *p.StartLine
-	// *p.StartLine = append(startLine, *p2.StartLine...)
-	// fmt.Println(startLine, *p2.StartLine)
-	// endLine := *p.EndLine
-	// *p.EndLine = append(endLine, *p2.EndLine...)
-	// ppp := *p
+	*p.StartLine = startLineP2
+	/////////////////////////////////////////////////////////////////////////////////
+
 	*p2 = *p
 }
 
@@ -179,7 +162,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			isColorCurrent := curOk && current.color == pixelColor
 			isColorLeft := leftOk && left.color == pixelColor
 			if !equal && isColorCurrent && isColorLeft {
-				fmt.Println(columnX, rowY, current, left, current.isUsed)
+				// fmt.Println(columnX, rowY, current, left, current.isUsed)
 				current.Concat(left)
 			}
 
@@ -199,6 +182,13 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 					// 	255,
 					// 	51,
 					// 	51,
+					// 	255,
+					// }
+
+					// col := color.RGBA{
+					// 	0,
+					// 	0,
+					// 	0,
 					// 	255,
 					// }
 
@@ -285,17 +275,18 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 			continue
 		}
 		d := ""
+		// fmt.Println("StartLine", path.color)
 		for _, XYPoint := range *path.StartLine {
 			x := XYPoint[0]
 			y := XYPoint[1]
-			fmt.Println("X: ", x, "Y: ", y)
+			// fmt.Println("X: ", x, "Y: ", y)
 			d = d + fmt.Sprintf("L%v %v ", x, y)
 		}
-		fmt.Println("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+		// fmt.Println("EndLine", path.color)
 		for _, XYPoint := range *path.EndLine {
 			x := XYPoint[0]
 			y := XYPoint[1]
-			fmt.Println("X: ", x, "Y: ", y)
+			// fmt.Println("X: ", x, "Y: ", y)
 			d = fmt.Sprintf("L%v %v ", x, y) + d
 		}
 
