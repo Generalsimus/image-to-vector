@@ -17,6 +17,7 @@ type VectorPath struct {
 	Color      color.Color
 	StartLines *[]*[]*[2]int
 	EndLines   *[]*[]*[2]int
+	//////////////////////////////////
 	// CurrentLine             int
 	CurrentStartY           int
 	CurrentStartYLindeIndex int
@@ -81,116 +82,74 @@ func (p *VectorPath) AddEnd(columX int, rowY int) {
 }
 
 func (p *VectorPath) Concat(p2 *VectorPath) {
-	// *p2.isUsed = false
-	// *p.StartLines = append(*p.StartLines, *p2.StartLines...)
-	// *p.EndLines = append(*p.EndLines, *p2.EndLines...)
-	// *p2 = *p
 	// return
+	// p2 არის სტარტი
+	// p დასასრული
 	*p2.isUsed = false
-	p2StartLines := *p2.StartLines
-	p2EndLines := *p2.EndLines
-	pStartLines := *p.StartLines
 	// pEndLines := *p.EndLines
 	// pLastLine := pEndLines[len(pEndLines)-1]
 	// pStartLine := pStartLines[p.CurrentStartYLindeIndex]
-	line := []*[2]int{}
-	data1, _ := json.Marshal(p2StartLines)
-	data2, _ := json.Marshal(p2EndLines)
-	fmt.Println(data1)
-	fmt.Println(data2)
+	p2StartLines := *p2.StartLines
+	p2EndLines := *p2.EndLines
+	//////////////////////////// START LINE
+	startLine := new([]*[2]int) // p2
 	for index := len(p2StartLines) - 1; index >= 0; index-- {
 		p2StartLine := *p2StartLines[index]
-		p2EndLine := *p2EndLines[index]
 
-		for i := len(p2EndLine) - 1; i >= 0; i-- {
-			p2EndLineItem := p2EndLine[i]
-			line = append(line, p2EndLineItem)
-			// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+		ok, p2EndLineAddr := indexValue(p2EndLines, index)
+		if ok {
+			p2EndLine := *p2EndLineAddr
+			// p2EndLine := *p2EndLines[index]
+
+			for i := len(p2EndLine) - 1; i >= 0; i-- {
+				p2EndLineItem := p2EndLine[i]
+				*startLine = append(*startLine, p2EndLineItem)
+				// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+			}
 		}
 		// line = append(line, p2EndLine...)
-		line = append(line, p2StartLine...)
-		// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+		*startLine = append(*startLine, p2StartLine...)
+
 	}
-	pStartLastAddr := pStartLines[0]
-	pStartLast := *pStartLastAddr
-	// for i := len(pStartLast) - 1; i >= 0; i-- {
-	// 	pStartLastItem := pStartLast[i]
-	// 	line = append(line, pStartLastItem)
-	// 	// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
-	// }
-	line = append(pStartLast, line...)
-	*pStartLastAddr = line
-	// for index, p2StartLineAddr := range p2StartLines {
-	// 	p2StartLine := *p2StartLineAddr
-	// 	p2EndLine := *p2EndLines[index]
-	// 	// *pStartLine = append(*pStartLine, *p2EndLine...)
-	// 	// for i := len(p2EndLineV) - 1; i >= 0; i-- {
-	// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
-	// 	// }
-	// 	// // ok, endAtLIne := indexValue(p2StartLines, index)
-	// 	// endAtLIne := p2StartLines[index]
-	// 	// // if ok {
-	// 	// *pStartLine = append(*pStartLine, *endAtLIne...)
+	//////////////////////////// END LINE
+	endLine := new([]*[2]int) // p
+	pStartLines := *p.EndLines
+	pEndLines := *p.StartLines
+	for index := len(pStartLines) - 1; index >= 0; index-- {
+		pStartLine := *pStartLines[index]
+		// pEndLine := *pEndLines[index]
+		ok, pEndLineAddr := indexValue(pEndLines, index)
+		if ok {
+			pEndLine := *pEndLineAddr
+			for i := len(pEndLine) - 1; i >= 0; i-- {
+				p2EndLineItem := pEndLine[i]
+				*endLine = append(*endLine, p2EndLineItem)
+				// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+			}
 
-	// 	// }
+		}
 
-	// }
+		// line = append(line, p2EndLine...)
+		*endLine = append(*endLine, pStartLine...)
 
-	// index := 0
-	// for {
+	}
+	// *[]*[]*[2]int
+	// eee :=
+	p.CurrentStartY = -1
+	// p.CurrentStartYLindeIndex = 0
+	p.CurrentEndY = -1
+	// p.CurrentEndYLineIndex = 0
+	*p.StartLines = []*[]*[2]int{startLine}
+	*p.EndLines = []*[]*[2]int{endLine}
 
-	// }
-	// for i := len(p2StartLines[0]) - 1; i >= 0; i-- {
-	// 	*line = append(*line, p2StartLines[0][i])
-	// }
-	// for index, p2EndLine := range p2EndLines {
-	// 	// el := *p2EndLine
-	// 	// *pStartLine = append(*p2EndLine, *pStartLine...)
-	// 	for i := len(p2EndLine) - 1; i >= 0; i-- {
-	// 		*pStartLine = append(*pStartLine, p2EndLineV[i])
-	// 	}
-	// }
-	// line := *[]*[2]int{}
-
-	// for index, p2EndLine := range p2EndLines {
-	// }
-
-	// for index, p2EndLine := range p2EndLines {
-	// 	p2EndLineV := *p2EndLine
-	// 	// *pStartLine = append(*pStartLine, *p2EndLine...)
-	// 	for i := len(p2EndLineV) - 1; i >= 0; i-- {
-	// 		*pStartLine = append(*pStartLine, p2EndLineV[i])
-	// 	}
-	// 	// ok, endAtLIne := indexValue(p2StartLines, index)
-	// 	endAtLIne := p2StartLines[index]
-	// 	// if ok {
-	// 	*pStartLine = append(*pStartLine, *endAtLIne...)
-
-	// 	// }
-
-	// }
-
-	// for index, p2StartLine := range p2StartLines {
-	// 	p2StartLineV := *p2StartLine
-	// 	for i := len(p2StartLineV) - 1; i >= 0; i-- {
-	// 		*pLastLine = append(*pLastLine, p2StartLineV[i])
-	// 	}
-	// 	// *pLastLine = append(*pLastLine, *p2StartLine...)
-	// 	/////////////////////////////////////////////////////
-	// 	endAtLIne := *p2EndLines[index]
-
-	// 	*pLastLine = append(*pLastLine, endAtLIne...)
-	// 	// for i := len(endAtLIne) - 1; i >= 0; i-- {
-	// 	// 	*pLastLine = append(*pLastLine, endAtLIne[i])
-	// 	// }
-
-	// }
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	// startLineP2 := *p2.StartLine
-	// endLineP2 := *p2.EndLine
-	// startLineP := *p.StartLine
-
+	// startLineEl := *startLine
+	// endLineEl := *endLine
+	// data1, _ := json.Marshal(startLineEl[0])
+	// data2, _ := json.Marshal(endLineEl[0])
+	// fmt.Println("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+	// fmt.Println(data1)
+	// fmt.Println("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+	// fmt.Println(data2)
 	*p2 = *p
 }
 
@@ -284,8 +243,11 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 
 			isColorCurrent := curOk && current.Color == pixelColor
 			isColorLeft := leftOk && left.Color == pixelColor
+
+			//////////////////////////////////////////////////////////////////
 			if !equal && isColorCurrent && isColorLeft {
-				fmt.Println(columnX, rowY, current, left, current.isUsed)
+
+				// fmt.Println(columnX, rowY, current, left, current.isUsed)
 				current.Concat(left)
 			}
 
@@ -308,16 +270,16 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 					// 	255,
 					// }
 
-					col := color.RGBA{
-						0,
-						0,
-						0,
-						255,
-					}
+					// col := color.RGBA{
+					// 	0,
+					// 	0,
+					// 	0,
+					// 	255,
+					// }
 
-					if col == current.Color && *isUsed {
-						paths = append(paths, current)
-					}
+					// if col == current.Color && *isUsed {
+					// 	paths = append(paths, current)
+					// }
 					if *isUsed {
 						paths = append(paths, current)
 					}
@@ -333,6 +295,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				}
 				current.AddStart(columnX, rowY)
 			}
+
 		}
 	}
 	// defer
