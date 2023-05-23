@@ -92,22 +92,83 @@ func (p *VectorPath) Concat(p2 *VectorPath) {
 	pStartLines := *p.StartLines
 	// pEndLines := *p.EndLines
 	// pLastLine := pEndLines[len(pEndLines)-1]
-	pStartLine := pStartLines[p.CurrentStartYLindeIndex]
+	// pStartLine := pStartLines[p.CurrentStartYLindeIndex]
+	line := []*[2]int{}
+	data1, _ := json.Marshal(p2StartLines)
+	data2, _ := json.Marshal(p2EndLines)
+	fmt.Println(data1)
+	fmt.Println(data2)
+	for index := len(p2StartLines) - 1; index >= 0; index-- {
+		p2StartLine := *p2StartLines[index]
+		p2EndLine := *p2EndLines[index]
 
-	for index, p2EndLine := range p2EndLines {
-		p2EndLineV := *p2EndLine
-		// *pStartLine = append(*pStartLine, *p2EndLine...)
-		for i := len(p2EndLineV) - 1; i >= 0; i-- {
-			*pStartLine = append(*pStartLine, p2EndLineV[i])
+		for i := len(p2EndLine) - 1; i >= 0; i-- {
+			p2EndLineItem := p2EndLine[i]
+			line = append(line, p2EndLineItem)
+			// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
 		}
-		// ok, endAtLIne := indexValue(p2StartLines, index)
-		endAtLIne := p2StartLines[index]
-		// if ok {
-		*pStartLine = append(*pStartLine, *endAtLIne...)
-
-		// }
-
+		// line = append(line, p2EndLine...)
+		line = append(line, p2StartLine...)
+		// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
 	}
+	pStartLastAddr := pStartLines[0]
+	pStartLast := *pStartLastAddr
+	// for i := len(pStartLast) - 1; i >= 0; i-- {
+	// 	pStartLastItem := pStartLast[i]
+	// 	line = append(line, pStartLastItem)
+	// 	// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+	// }
+	line = append(pStartLast, line...)
+	*pStartLastAddr = line
+	// for index, p2StartLineAddr := range p2StartLines {
+	// 	p2StartLine := *p2StartLineAddr
+	// 	p2EndLine := *p2EndLines[index]
+	// 	// *pStartLine = append(*pStartLine, *p2EndLine...)
+	// 	// for i := len(p2EndLineV) - 1; i >= 0; i-- {
+	// 	// 	*pStartLine = append(*pStartLine, p2EndLineV[i])
+	// 	// }
+	// 	// // ok, endAtLIne := indexValue(p2StartLines, index)
+	// 	// endAtLIne := p2StartLines[index]
+	// 	// // if ok {
+	// 	// *pStartLine = append(*pStartLine, *endAtLIne...)
+
+	// 	// }
+
+	// }
+
+	// index := 0
+	// for {
+
+	// }
+	// for i := len(p2StartLines[0]) - 1; i >= 0; i-- {
+	// 	*line = append(*line, p2StartLines[0][i])
+	// }
+	// for index, p2EndLine := range p2EndLines {
+	// 	// el := *p2EndLine
+	// 	// *pStartLine = append(*p2EndLine, *pStartLine...)
+	// 	for i := len(p2EndLine) - 1; i >= 0; i-- {
+	// 		*pStartLine = append(*pStartLine, p2EndLineV[i])
+	// 	}
+	// }
+	// line := *[]*[2]int{}
+
+	// for index, p2EndLine := range p2EndLines {
+	// }
+
+	// for index, p2EndLine := range p2EndLines {
+	// 	p2EndLineV := *p2EndLine
+	// 	// *pStartLine = append(*pStartLine, *p2EndLine...)
+	// 	for i := len(p2EndLineV) - 1; i >= 0; i-- {
+	// 		*pStartLine = append(*pStartLine, p2EndLineV[i])
+	// 	}
+	// 	// ok, endAtLIne := indexValue(p2StartLines, index)
+	// 	endAtLIne := p2StartLines[index]
+	// 	// if ok {
+	// 	*pStartLine = append(*pStartLine, *endAtLIne...)
+
+	// 	// }
+
+	// }
 
 	// for index, p2StartLine := range p2StartLines {
 	// 	p2StartLineV := *p2StartLine
