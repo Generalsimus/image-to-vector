@@ -239,11 +239,12 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			leftOk, left := indexValue(pathShapes, columnX-1)
 			curOk, current := indexValue(pathShapes, columnX)
 
-			equal := curOk && leftOk && current.isUsed == left.isUsed
+			// equal := curOk && leftOk && current.isUsed == left.isUsed
 
 			isColorCurrent := curOk && current.Color == pixelColor
 			isColorLeft := leftOk && left.Color == pixelColor
 
+			equal := isColorCurrent && isColorLeft && current.isUsed == left.isUsed
 			//////////////////////////////////////////////////////////////////
 			if !equal && isColorCurrent && isColorLeft {
 
