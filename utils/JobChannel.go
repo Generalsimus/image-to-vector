@@ -1,26 +1,26 @@
 package utils
 
-type JobChannel[F func()] struct {
-	callBack F
-}
-
-func (j *JobChannel[F]) AddJob(callBack F) {
-	current := j.callBack
-	if current == nil {
-		j.callBack = func() {
-			callBack()
-		}
-	} else {
-		j.callBack = func() {
-			current()
-			callBack()
+func NewJobChannel[T any]() (
+	*func(value T) T,
+	func(callback func(v T) T),
+	// func(callback func(v T) T),
+) {
+	startPont := func(value T) T {
+		return value
+	}
+	getValue := &startPont
+	addModifierAfter := func(callback func(v T) T) {
+		current := *getValue
+		*getValue = func(value T) T {
+			return callback(current(value))
 		}
 	}
-}
-
-func (j *JobChannel[F]) Run() {
-	current := j.callBack
-	if current != nil {
-		current()
-	}
+	// addModifierBefore := func(callback func(v T) T) {
+	// 	current := *getValue
+	// 	*getValue = func(value T) T {
+	// 		return current(callback(value))
+	// 	}
+	// }
+	return getValue, addModifierAfter
+	// , addModifierBefore
 }

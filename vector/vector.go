@@ -13,32 +13,63 @@ import (
 )
 
 type VectorPath struct {
-	isUsed     *bool
-	Color      color.Color
-	StartLines *[]*[]*[2]int
-	EndLines   *[]*[]*[2]int
+	isUsed *bool
+	Color  color.Color
+	// StartLines *[]*[]*[2]int
+	// EndLines   *[]*[]*[2]int
 	//////////////////////////////////
-	CurrentLineIndex int
-	LastY            int
-	// CurrentLine             int
-	// CurrentStartY           int
-	// CurrentStartYLindeIndex int
-	// CurrentEndY             int
-	// CurrentEndYLineIndex    int
+	// CurrentLineIndex int
+	// LastY            int
+	///////////////////////////////////////
+	// Lines     *[]*[]*[2]int
+	// LineIndex int
+	// CurrentY  int
+	///////////////////////////////////////////
+	LineChannel *func(Line *[]*[2]int) *[]*[2]int
+	// GetPathLine *func(Line *[]*[2]int) *[]*[2]int
+	CurrentY int
 }
 
-func (p *VectorPath) DuplicateLine() *VectorPath {
-	startLines := append(*p.StartLines, new([]*[2]int))
-	endLines := append(*p.EndLines, new([]*[2]int))
-	// Dupl
-	return &VectorPath{
-		isUsed:           p.isUsed,
-		Color:            p.Color,
-		StartLines:       &startLines,
-		EndLines:         &endLines,
-		CurrentLineIndex: p.CurrentLineIndex + 1,
-		LastY:            p.LastY,
+func (p *VectorPath) AddForkLine() *VectorPath {
+	prevLineChannel := *p.LineChannel
+	lineChannel := func(line *[]*[2]int) *[]*[2]int {
+
+		return prevLineChannel(line)
 	}
+	// prevGetPathLine := *p.GetPathLine
+
+	// *p.GetPathLine = func(Line *[]*[2]int) *[]*[2]int {
+	// 	return prevGetPathLine(Line)
+	// }
+
+	return &VectorPath{
+		LineChannel: &lineChannel,
+		CurrentY:    -1,
+	}
+
+}
+func (p *VectorPath) AddStart(columX int, rowY int) {
+	prevLineChannel := *p.LineChannel
+	*p.LineChannel = func(line *[]*[2]int) *[]*[2]int {
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+
+		*line = append(*line, &move1, &move2)
+		return prevLineChannel(line)
+	}
+
+}
+func (p *VectorPath) AddEnd(columX int, rowY int) {
+	prevLineChannel := *p.LineChannel
+	*p.LineChannel = func(line *[]*[2]int) *[]*[2]int {
+		prevLineChannel(line)
+		move1 := [2]int{columX, rowY}
+		move2 := [2]int{columX, rowY + 1}
+
+		*line = append(*line, &move1, &move2)
+		return line
+	}
+
 }
 
 // func (p *VectorPath) GetLinePath(rowY int) *VectorPath {
@@ -56,106 +87,40 @@ func (p *VectorPath) DuplicateLine() *VectorPath {
 // 	}
 
 // }
-func (p *VectorPath) AddStart(columX int, rowY int) {
-	startLines := *p.StartLines
+// func (p *VectorPath) AddStart(columX int, rowY int) {
+// 	startLines := *p.StartLines
 
-	startLine := startLines[p.CurrentLineIndex]
+// 	startLine := startLines[p.CurrentLineIndex]
 
-	move1 := [2]int{columX, rowY}
-	move2 := [2]int{columX, rowY + 1}
+// 	move1 := [2]int{columX, rowY}
+// 	move2 := [2]int{columX, rowY + 1}
 
-	*startLine = append(*startLine, &move1, &move2)
-	p.LastY = rowY
-}
-func (p *VectorPath) AddEnd(columX int, rowY int) {
-	endLines := *p.EndLines
+// 	*startLine = append(*startLine, &move1, &move2)
+// 	p.LastY = rowY
+// }
+// func (p *VectorPath) AddEnd(columX int, rowY int) {
+// 	endLines := *p.EndLines
 
-	endLine := endLines[p.CurrentLineIndex]
+// 	endLine := endLines[p.CurrentLineIndex]
 
-	move1 := [2]int{columX, rowY}
-	move2 := [2]int{columX, rowY + 1}
+// 	move1 := [2]int{columX, rowY}
+// 	move2 := [2]int{columX, rowY + 1}
 
-	*endLine = append(*endLine, &move1, &move2)
-	p.LastY = rowY
-}
-
-func (p *VectorPath) ConcatLine(p2 *VectorPath) {
-	// return
-	*p2.isUsed = false
-
-	p2StartLines := *p2.StartLines
-	p2EndLines := *p2.EndLines
-	pStartLines := *p.StartLines
-	// pEndLines := *p.EndLines
-
-	startLine := pStartLines[p.CurrentLineIndex]
-	for _, p2StartLineAddr := range p2StartLines {
-		p2StartLine := *p2StartLineAddr
-		*startLine = append(*startLine, p2StartLine...)
-	}
-	fmt.Println("in: ", p.CurrentLineIndex)
-	///////////////////////////////////////////////////////
-	// endLine := pEndLines[p.CurrentLineIndex]
-	for _, p2EndLineAddr := range p2EndLines {
-		p2EndLine := *p2EndLineAddr
-		*startLine = append(*startLine, p2EndLine...)
-	}
-	// [1,2],[3]
-	// [4,5,6,7]
-
-	// [1,2],[3]
-	// [4,5,6,7]
-
-	// for index, p2StartLineAddr := range p2StartLines {
-	// 	p2StartLine := *p2StartLineAddr
-
-	// 	*startLine = append(p2StartLine, *startLine...)
-
-	// 	ok, p2EndLineAddr := indexValue(p2EndLines, index)
-	// 	if ok {
-	// 		p2EndLine := *p2EndLineAddr
-	// 		// *startLine = append(*startLine, pEndLine...)
-	// 		// for i := len(pEndLine) - 1; i >= 0; i-- {
-	// 		// 	*startLine = append(*startLine, pEndLine[i])
-	// 		// }
-	// 		for i := 0; i < len(p2EndLine); i++ {
-	// 			*startLine = append([]*[2]int{p2EndLine[i]}, *startLine...)
-	// 		}
-	// 	}
-	// }
-
-	// for index, pStartLineAddr := range pStartLines {
-	// 	pStartLine := *pStartLineAddr
-	// 	*startLine = append(pStartLine, *startLine...)
-	// 	ok, pEndLineAddr := indexValue(pEndLines, index)
-	// 	if ok {
-	// 		pEndLine := *pEndLineAddr
-
-	// 		for i := 0; i < len(pEndLine); i++ {
-	// 			*startLine = append([]*[2]int{pEndLine[i]}, *startLine...)
-	// 		}
-	// 	}
-
-	// }
-
-	*p2 = *p
-}
-
+//		*endLine = append(*endLine, &move1, &move2)
+//		p.LastY = rowY
+//	}
 func NewVectorPath(color color.Color) *VectorPath {
-	startLines := []*[]*[2]int{
-		new([]*[2]int),
-	}
-	endLines := []*[]*[2]int{
-		new([]*[2]int),
-	}
+
 	isUsed := true
+
+	lineChannel := func(line *[]*[2]int) *[]*[2]int {
+		return line
+	}
 	return &VectorPath{
-		isUsed:           &isUsed,
-		Color:            color,
-		StartLines:       &startLines,
-		EndLines:         &endLines,
-		CurrentLineIndex: 0,
-		LastY:            0,
+		isUsed:      &isUsed,
+		Color:       color,
+		LineChannel: &lineChannel,
+		CurrentY:    -1,
 	}
 }
 
@@ -191,17 +156,23 @@ type VectorImage struct {
 // 	return float64(x), float64(y)
 // }
 
-// func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
-// 	return float64(x+1) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
-// }
+//	func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
+//		return float64(x+1) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
+//	}
 
 func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	colorDiffNum := float64(255 * v.ColorDiffPercent)
 	paths := []*VectorPath{}
 
-	jobChannel := &utils.JobChannel[func()]{}
+	// jobChannel := &utils.JobChannel[func()]{}
+	getPathValue, addPathModifier := utils.NewJobChannel[[]*VectorPath]()
 	newImage := image.NewRGBA(image.Rect(0, 0, v.Widget, v.Height))
 	pathShapes := make([]*VectorPath, v.Widget)
+	// startChannel := func(paths []*VectorPath) []*VectorPath {
+	// 	return paths
+	// }
+	// chanel := &startChannel
+
 	////////////////////////////////////////////////
 	// var wg sync.WaitGroup
 	// wg.Add(1)
@@ -222,21 +193,19 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				uint8(a),
 			}
 			newImage.Set(columnX, rowY, pixelColor)
-			// if rowY > 4 {
-			// 	continue
-			// }
+			if rowY > 6 {
+				continue
+			}
 
 			leftOk, left := indexValue(pathShapes, columnX-1)
 			curOk, current := indexValue(pathShapes, columnX)
 
-			// equal := curOk && leftOk && current.isUsed == left.isUsed
-
 			isColorCurrent := curOk && current.Color == pixelColor
 			isColorLeft := leftOk && left.Color == pixelColor
 
-			// equal := isColorCurrent && isColorLeft && current.isUsed == left.isUsed
 			equal := curOk && leftOk && current.isUsed == left.isUsed
 			//////////////////////////////////////////////////////////////////
+
 			if !equal && isColorCurrent && isColorLeft {
 				current.ConcatLine(left)
 			}
@@ -249,14 +218,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				isUsed := current.isUsed
 				pathShapes[columnX] = current
 
-				jobChannel.AddJob(func() {
-
-					// col := color.RGBA{
-					// 	255,
-					// 	51,
-					// 	51,
-					// 	255,
-					// }
+				addPathModifier(func(paths []*VectorPath) []*VectorPath {
 
 					col := color.RGBA{
 						0,
@@ -266,8 +228,9 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 					}
 
 					if col == current.Color && *isUsed {
-						paths = append(paths, current)
+						return append(paths, current)
 					}
+					return paths
 					// if *isUsed {
 					// 	paths = append(paths, current)
 					// }
@@ -277,36 +240,41 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			if !isColorLeft {
 				if leftOk {
 					left.AddEnd(columnX, rowY)
+					left.AddCrossLine(columnX, rowY)
 				}
-
-				if current.LastY == rowY {
-					current = current.DuplicateLine()
-					pathShapes[columnX] = current
-				}
+				// if current.LastY == rowY && isColorCurrent {
+				// if current.LastY == rowY {
+				// 	current = current.DuplicateLine()
+				// 	pathShapes[columnX] = current
+				// 	// current.LastY = rowY
+				// 	fmt.Println("AFTER: ", current.Color, current.CurrentLineIndex)
+				// }
+				current.AddCrossLine(columnX, rowY)
 				current.AddStart(columnX, rowY)
 			} else if columnX == (v.Widget - 1) {
+				current.AddCrossLine(columnX+1, rowY)
 				current.AddEnd(columnX+1, rowY)
 			}
-
 		}
 	}
 	// defer
 	// wg.Done()
 	// ProcessEnd.Wait()
-	jobChannel.Run()
+	// paths :=
+
 	// fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 	// b, _ := json.MarshalIndent(&paths, "", "  ")
 	// fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD", len(paths), string(b))
 
-	for _, paa := range paths {
-		data, _ := json.Marshal(paa)
-		fmt.Println("RRRRRRRRRRRRRRRRRRR", len(paths), string(data))
-		// var prettyJSON bytes.Buffer
-		// json.Indent(&prettyJSON, data, "", "\t")
-		// fmt.Println("RRRRRRRRRRRRRRRRRRR", len(paths), string(prettyJSON.Bytes()))
-	}
+	// for _, paa := range paths {
+	// 	data, _ := json.Marshal(paa)
+	// 	fmt.Println("RRRRRRRRRRRRRRRRRRR", len(paths), string(data))
+	// 	// var prettyJSON bytes.Buffer
+	// 	// json.Indent(&prettyJSON, data, "", "\t")
+	// 	// fmt.Println("RRRRRRRRRRRRRRRRRRR", len(paths), string(prettyJSON.Bytes()))
+	// }
 	fmt.Println("ENDDDDDDDDDDDDDDDDDDDDDDDD", len(paths))
-	return newImage, paths
+	return newImage, (*getPathValue)([]*VectorPath{})
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -360,40 +328,56 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 		if path == nil {
 			continue
 		}
+		data3, _ := json.Marshal(path.Line)
+
+		fmt.Println("LINE: ", string(data3))
 		d := ""
-		startLines := *path.StartLines
-		endLines := *path.EndLines
-		for index, startLine := range startLines {
-			fmt.Println("index: ", index)
-			if index > 1 {
-				continue
-			}
-			startLine := *startLine
-			for _, XYPoint := range startLine {
-				x := XYPoint[0]
-				y := XYPoint[1]
-				// fmt.Println("X: ", x, "Y: ", y)
-				// if index1 == 0 {
-
-				// 	d = fmt.Sprintf("M%v %v ", x, y) + d
-				// } else {
-
-				d = d + fmt.Sprintf("L%v %v ", x, y)
-				// }
-			}
-			ok, pEndLineAddr := indexValue(endLines, index)
-			if ok {
-				endLine := *pEndLineAddr
-				for _, XYPoint := range endLine {
-					// XYPoint := endLine[len(endLine)-1-index]
-					x := XYPoint[0]
-					y := XYPoint[1]
-					// fmt.Println("X: ", x, "Y: ", y)
-					d = fmt.Sprintf("L%v %v ", x, y) + d
-				}
-			}
+		// startLines := *path.StartLines
+		// endLines := *path.EndLines
+		for _, XYPoint := range *path.Line {
+			x := XYPoint[0]
+			y := XYPoint[1]
+			// 		// fmt.Println("X: ", x, "Y: ", y)
+			d = d + fmt.Sprintf("L%v %v ", x, y)
 
 		}
+		// for index, startLine := range startLines {
+		// fmt.Println("index: ", index)
+		// if index > 1 {
+		// 	continue
+		// }
+		// ok, pEndLineAddr := indexValue(endLines, index)
+
+		// data2, _ := json.Marshal(startLine)
+		// fmt.Println("START LINE: ", string(data2))
+		// data1, _ := json.Marshal(*pEndLineAddr)
+		// fmt.Println("End LINE: ", string(data1))
+		// if ok {
+		// 	endLine := *pEndLineAddr
+		// 	for index, _ := range endLine {
+		// 		XYPoint := endLine[len(endLine)-1-index]
+		// 		x := XYPoint[0]
+		// 		y := XYPoint[1]
+		// 		// fmt.Println("X: ", x, "Y: ", y)
+		// 		d = d + fmt.Sprintf("L%v %v ", x, y)
+		// 	}
+		// }
+
+		// startLine := *startLine
+		// for _, XYPoint := range startLine {
+		// 	x := XYPoint[0]
+		// 	y := XYPoint[1]
+		// 	// fmt.Println("X: ", x, "Y: ", y)
+		// 	// if index1 == 0 {
+
+		// 	// 	d = fmt.Sprintf("M%v %v ", x, y) + d
+		// 	// } else {
+
+		// 	d = d + fmt.Sprintf("L%v %v ", x, y)
+		// 	// }
+		// }
+
+		// }
 
 		r, g, b, a := path.Color.RGBA()
 		color := fmt.Sprintf("rgba(%v,%v,%v,%v)", r>>8, g>>8, b>>8, a>>8)
