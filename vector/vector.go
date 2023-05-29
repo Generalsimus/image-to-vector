@@ -63,7 +63,7 @@ func (p *VectorPath) ForkLine() *VectorPath {
 
 }
 func (p *VectorPath) ConcatLine(p2 *VectorPath) {
-	// return
+	return
 	*p2.isUsed = false
 	// pStartLineChannel := *p.StartLineChannel
 	// pEndLineChannel := *p.EndLineChannel
@@ -82,10 +82,20 @@ func (p *VectorPath) ConcatLine(p2 *VectorPath) {
 	p2EndLineChannel := *p2.EndLineChannel     // End
 	////
 	startLineChannel := func(line *[]*[2]int) *[]*[2]int {
-		p2StartLineChannel(line)
+		pEndLineChannel(line)
 		p2EndLineChannel(line)
 		pStartLineChannel(line)
-		pEndLineChannel(line)
+		p2StartLineChannel(line)
+		data, _ := json.Marshal(line)
+		fmt.Println(p.Color, string(data))
+
+		// pEndLineChannel(line)
+
+		// pStartLineChannel(line)
+		// p2StartLineChannel(line)
+
+		// p2EndLineChannel(line)
+
 		return line
 	}
 	endLineChannel := func(line *[]*[2]int) *[]*[2]int {
@@ -96,99 +106,25 @@ func (p *VectorPath) ConcatLine(p2 *VectorPath) {
 	*p.EndLineChannel = endLineChannel
 	// pStartLineChannel := *p.StartLineChannel
 	// p2EndLineChannel := *p2.EndLineChannel
-	// *p.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
-	// 	(*p.StartLineChannel)(line)
-	// 	(*p.EndLineChannel)(line)
-	// 	return line
-	// }
+	*p.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
+		(*p.StartLineChannel)(line)
+		(*p.EndLineChannel)(line)
+		return line
+	}
 	// *p.StartLineChannel = *p2.StartLineChannel
 	// e2 :=
-	*p2.StartLineChannel = func(line *[]*[2]int) *[]*[2]int {
+	fillPathLine := func(line *[]*[2]int) *[]*[2]int {
 		data, _ := json.Marshal(line)
 		fmt.Println("math.Random(1)", string(data))
 		return line
 	}
-	*p2.EndLineChannel = func(line *[]*[2]int) *[]*[2]int {
-		data, _ := json.Marshal(line)
-		fmt.Println("math.Random(2)", string(data))
-		return line
-	}
-	// p.EndLineChannel = endLineChannelAddr
-	// p2StartLineChannel := *p2.StartLineChannel
-	// p2EndLineChannel := *p2.EndLineChannel
-	// p2FillPathLine := *p2.FillPathLine
-
-	///////////////////////////////////////////////////////////////////////////
-	// PrevColumX, PrevRowY := p.GetPreviousEndPoint()
-	// prevStartLineChannel := *p.StartLineChannel
-	// prevEndLineChannel := *p.EndLineChannel
-
-	// startChannel := func(line *[]*[2]int) *[]*[2]int {
-	// 	p2FillPathLine(line)
-	// 	// *line = append(*line, &[2]int{PrevColumX, PrevRowY}, &[2]int{PrevColumX, PrevRowY + 1})
-
-	// 	prevStartLineChannel(line)
-	// 	prevEndLineChannel(line)
-
+	*p2.FillPathLine = fillPathLine
+	// *p2.StartLineChannel = fillPathLine
+	// *p2.EndLineChannel = fillPathLine
+	// *p2.EndLineChannel = func(line *[]*[2]int) *[]*[2]int {
+	// 	data, _ := json.Marshal(line)
+	// 	fmt.Println("math.Random(2)", string(data))
 	// 	return line
-	// }
-	// endChannel := func(line *[]*[2]int) *[]*[2]int {
-	// 	return line
-	// }
-
-	// startChannelAddr := &startChannel
-	// endChannelAddr := &endChannel
-	// prevFillPathLine := *p.FillPathLine
-
-	// *p.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
-	// 	prevFillPathLine(line)
-
-	// 	(*startChannelAddr)(line)
-	// 	(*endChannelAddr)(line)
-	// 	return line
-	// }
-
-	// p.StartLineChannel = startChannelAddr
-	// p.EndLineChannel = endChannelAddr
-	// startLineChannel := func(line *[]*[2]int) *[]*[2]int {
-
-	// 	// (*startChannelAddr)(line)
-	// 	// (*endChannelAddr)(line)
-	// 	pStartLineChannel(line)
-	// 	p2FillPathLine(line)
-	// 	pEndLineChannel(line)
-	// 	// pFillPathLine(line)
-	// 	////////////////////////////////
-	// 	// p2FillPathLine(line)
-	// 	// p2StartLineChannel(line)
-	// 	// p2EndLineChannel(line)
-	// 	// p2StartLineChannel(line)
-
-	// 	// data, _ := json.Marshal(line)
-	// 	// fmt.Println("math.Random()", string(data))
-	// 	fmt.Println("math.Random()", len(*line))
-	// 	// p2EndLineChannel(line)
-	// 	return line
-	// }
-	// endLineChannel := func(line *[]*[2]int) *[]*[2]int {
-	// 	return line
-	// }
-	// p.StartLineChannel = &startLineChannel
-	// p.EndLineChannel = &endLineChannel
-	// *p.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
-	// 	(*p.StartLineChannel)(line)
-	// 	(*p.EndLineChannel)(line)
-	// 	return line
-	// }
-	// *p2.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
-	// 	return line
-	// }
-	// *p2.FillPathLine
-	// *p2.FillPathLine = func(line *[]*[2]int) *[]*[2]int {
-	// 	return line
-	// }
-	// *p.EndLineChannel = func(line *[]*[2]int) *[]*[2]int {
-
 	// }
 	*p2 = *p
 }
@@ -279,19 +215,6 @@ type VectorImage struct {
 	OnePixelScaleY   float64
 }
 
-// func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
-// 	return float64(x) / float64(v.Widget), float64(y) / float64(v.Height)
-// }
-
-// func (v *VectorImage) MoveScale(x int, y int) (float64, float64) {
-// 	// return float64(x) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
-// 	return float64(x), float64(y)
-// }
-
-//	func (v *VectorImage) MoveEnd(x int, y int) (float64, float64) {
-//		return float64(x+1) * v.OnePixelScaleX, float64(y) * v.OnePixelScaleY
-//	}
-
 func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	colorDiffNum := float64(255 * v.ColorDiffPercent)
 	paths := []*VectorPath{}
@@ -306,9 +229,6 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 	// chanel := &startChannel
 
 	////////////////////////////////////////////////
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	// var ProcessEnd sync.WaitGroup
 
 	for rowY := 0; rowY < v.Height; rowY++ {
 		for columnX := 0; columnX < v.Widget; columnX++ {
@@ -335,7 +255,7 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 			isColorCurrent := curOk && current.Color == pixelColor
 			isColorLeft := leftOk && left.Color == pixelColor
 
-			equal := curOk && leftOk && current.isUsed == left.isUsed
+			equal := curOk && leftOk && current.FillPathLine == left.FillPathLine
 			//////////////////////////////////////////////////////////////////
 
 			if !equal && isColorCurrent && isColorLeft {
@@ -347,14 +267,14 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 				current = left
 			} else if !isColorCurrent {
 				current = NewVectorPath(pixelColor)
-				// isUsed := current.isUsed
+				isUsed := current.isUsed
 				pathShapes[columnX] = current
 
 				addPathModifier(func(paths []*VectorPath) []*VectorPath {
 
-					// if *isUsed {
-					paths = append(paths, current)
-					// }
+					if *isUsed {
+						paths = append(paths, current)
+					}
 					return paths
 				})
 			}
@@ -407,18 +327,6 @@ func (v *VectorImage) ImageVector() (image.Image, []*VectorPath) {
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
 
 func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, saveWidget int, saveHeight int) {
 	os.Remove(fileName)
@@ -449,27 +357,15 @@ func (v VectorImage) SavePathsToSVGFile(paths []*VectorPath, fileName string, sa
 			continue
 		}
 		line := &[]*[2]int{}
-		// (*path.StartLineChannel)(&[]*[2]int{})
-		// (*path.EndLineChannel)(line)
-		// line := (*path.FillPathChannel)(new([]*[2]int))
-		// fmt.Println("BEF: ", len(*line))
+
 		(*path.FillPathLine)(line)
-		// fmt.Println("AFT: ", len(*line))
+
 		if len(*line) == 0 {
 			continue
 		}
-		// EndLineChannelData3, _ := json.Marshal((*path.EndLineChannel)(&[]*[2]int{}))
-		// StartLineChannelData3, _ := json.Marshal((*path.StartLineChannel)(&[]*[2]int{}))
 
-		// fmt.Println("")
-		// fmt.Println("EndLineChannel: ", string(EndLineChannelData3))
-		// fmt.Println("StartLineChannel: ", string(StartLineChannelData3))
-
-		// EndLineChannelDatsadasdasa3, _ := json.Marshal(line)
-		// fmt.Println("LINE: ", string(EndLineChannelDatsadasdasa3))
 		d := ""
-		// startLines := *path.StartLines
-		// endLines := *path.EndLines
+
 		for _, XYPoint := range *line {
 			x := XYPoint[0]
 			y := XYPoint[1]
